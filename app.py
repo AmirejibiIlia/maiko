@@ -5,20 +5,20 @@ import streamlit as st
 def simple_finance_chat():
     st.title("Simple Finance Chatbot")
     st.write("Upload a financial data file (Excel format) and ask questions about it!")
-
+    
     # File uploader for the Excel file
     uploaded_file = st.file_uploader("Upload your financial data Excel file", type=["xlsx"])
-
+    
     if uploaded_file is not None:
         # Load the Excel file into a DataFrame
         df = pd.read_excel(uploaded_file)
-
+        
         # Check if the necessary columns are present
         required_columns = {"year", "metrics", "value"}
         if not required_columns.issubset(df.columns):
             st.error(f"Your file must contain the following columns: {', '.join(required_columns)}")
             return
-
+        
         # Convert data to a more readable format for prompting
         data_summary = ""
         for year in df['year'].unique():
@@ -26,14 +26,14 @@ def simple_finance_chat():
             year_data = df[df['year'] == year]
             for _, row in year_data.iterrows():
                 data_summary += f"{row['metrics']}: {row['value']}\n"
-
+        
         # Display data summary
         st.write("### Data Summary")
         st.text(data_summary)
-
+        
         # Input field for user question
         question = st.text_input("Ask your financial question:")
-
+        
         if question:
             # Generate prompt for the AI
             prompt = f"""
@@ -49,10 +49,10 @@ def simple_finance_chat():
             4. If asked about highest/lowest values, specify both the year and the value
             5. Format numbers with thousand separators for better readability
             """
-
+            
             # Initialize Claude client
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
-
+            
             # Get the response from the AI
             try:
                 response = client.messages.create(
@@ -63,10 +63,9 @@ def simple_finance_chat():
                         {"role": "user", "content": prompt}
                     ]
                 )
-
                 # Display the AI's response
                 st.write("### Response:")
-                st.write(response["completion"])
+                st.write(response.content[0].text)  # Updated to access the response correctly
             except Exception as e:
                 st.error(f"Error: {str(e)}")
 
