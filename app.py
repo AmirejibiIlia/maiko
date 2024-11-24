@@ -3,8 +3,8 @@ import anthropic
 import streamlit as st
 
 def simple_finance_chat():
-    st.title("Simple Finance Chatbot")
-    st.write("Upload a financial data file (Excel format) and ask questions about it!")
+    st.title("სალამი, მე ვარ MAIA")
+    st.write("ატვირთე ფაილი და გამწურე, რატი!!")
     
     # File uploader for the Excel file
     uploaded_file = st.file_uploader("Upload your financial data Excel file", type=["xlsx"])
