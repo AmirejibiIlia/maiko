@@ -81,6 +81,25 @@ import streamlit as st
 import json
 import numpy as np
 from datetime import datetime
+import re
+
+def clean_date_column(df):
+    """Convert date strings in DD.MM.YY format to datetime objects"""
+    # Copy the dataframe to avoid modifying the original
+    df_cleaned = df.copy()
+    
+    # Check if the year column contains date-like strings
+    if df_cleaned['year'].dtype == 'object':
+        # Try to convert DD.MM.YY to datetime
+        try:
+            df_cleaned['date'] = pd.to_datetime(df_cleaned['year'], format='%d.%m.%y')
+            # Extract year and month for easier filtering
+            df_cleaned['year'] = df_cleaned['date'].dt.year
+            df_cleaned['month'] = df_cleaned['date'].dt.month
+        except Exception as e:
+            st.warning(f"Could not parse dates: {str(e)}. Using original values.")
+    
+    return df_cleaned
 
 def interpret_financial_query(query, available_metrics):
     """Parse financial query into structured parameters using Claude"""
@@ -90,14 +109,16 @@ def interpret_financial_query(query, available_metrics):
     Parse this financial data query into structured parameters.
     Available metrics: {', '.join(available_metrics)}
     
+    The data contains monthly values from different dates.
+    
     Query: "{query}"
     
     Return a JSON with:
     - operation: [sum, average, growth_rate, comparison, correlation, projection, etc.]
     - metrics: list of metrics mentioned
-    - time_period: specified time range (years)
+    - time_period: specified time range (specific months or date ranges)
     - filters: any conditions to apply
-    - grouping: any grouping instructions
+    - grouping: any grouping instructions (e.g. by month, by quarter)
     - advanced_parameters: any operation-specific parameters
     
     JSON:
@@ -141,14 +162,17 @@ def fallback_parse(query, available_metrics):
         "advanced_parameters": {}
     }
     
-    # Try to detect years in the query
-    years = []
-    for word in query.split():
-        if word.isdigit() and 1900 < int(word) < 2100:
-            years.append(int(word))
+    # Try to detect months or dates in the query
+    months_pattern = r'\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b'
+    date_pattern = r'\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b'
     
-    if years:
-        params["time_period"] = years
+    months = re.findall(months_pattern, query, re.IGNORECASE)
+    dates = re.findall(date_pattern, query)
+    
+    if months:
+        params["time_period"] = {"months": months}
+    if dates:
+        params["time_period"] = {"dates": dates}
         
     # Detect basic operations
     if "growth" in query.lower() or "increase" in query.lower() or "change" in query.lower():
@@ -159,6 +183,8 @@ def fallback_parse(query, available_metrics):
         params["operation"] = "average"
     elif "correlation" in query.lower() or "relationship" in query.lower():
         params["operation"] = "correlation"
+    elif "total" in query.lower() or "sum" in query.lower():
+        params["operation"] = "sum"
         
     return params
 
@@ -169,11 +195,24 @@ def execute_calculation(params, df):
     
     # Filter by time period if specified
     if params.get('time_period'):
-        if isinstance(params['time_period'], list):
-            result_df = result_df[result_df['year'].isin(params['time_period'])]
-        else:
-            # Handle range or other formats
-            pass
+        time_period = params['time_period']
+        if isinstance(time_period, dict):
+            # Handle months
+            if 'months' in time_period and isinstance(time_period['months'], list):
+                month_mapping = {
+                    'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+                    'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+                    'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'october': 10, 'oct': 10,
+                    'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+                }
+                
+                month_nums = [month_mapping.get(m.lower(), 0) for m in time_period['months']]
+                result_df = result_df[result_df['month'].isin(month_nums)]
+            
+            # Handle dates
+            if 'dates' in time_period and isinstance(time_period['dates'], list):
+                # This would require more advanced date parsing logic
+                pass
     
     # Initialize result dictionary
     result = {
@@ -198,11 +237,11 @@ def execute_calculation(params, df):
                 metric_data = result_df[result_df['metrics'] == metric]
                 if not metric_data.empty:
                     result["calculations"][metric] = {
-                        "latest": metric_data.sort_values('year', ascending=False)['value'].iloc[0],
+                        "latest": metric_data.sort_values('date', ascending=False)['value'].iloc[0],
                         "average": metric_data['value'].mean(),
                         "min": metric_data['value'].min(),
                         "max": metric_data['value'].max(),
-                        "years": sorted(metric_data['year'].unique().tolist())
+                        "months": sorted(metric_data['date'].dt.strftime('%b %Y').unique().tolist())
                     }
                 else:
                     result["calculations"][metric] = {"error": f"No data found for metric: {metric}"}
@@ -241,7 +280,18 @@ def execute_calculation(params, df):
                 if not metric_data.empty:
                     result["calculations"][metric] = {
                         "average": metric_data['value'].mean(),
-                        "years": sorted(metric_data['year'].unique().tolist())
+                        "months": sorted(metric_data['date'].dt.strftime('%b %Y').unique().tolist())
+                    }
+                else:
+                    result["calculations"][metric] = {"error": f"No data found for metric: {metric}"}
+                    
+        elif operation == 'sum':
+            for metric in params['metrics']:
+                metric_data = result_df[result_df['metrics'] == metric]
+                if not metric_data.empty:
+                    result["calculations"][metric] = {
+                        "sum": metric_data['value'].sum(),
+                        "months": sorted(metric_data['date'].dt.strftime('%b %Y').unique().tolist())
                     }
                 else:
                     result["calculations"][metric] = {"error": f"No data found for metric: {metric}"}
@@ -253,15 +303,15 @@ def execute_calculation(params, df):
 
 def calculate_growth_rate(df, metric, method='simple'):
     """Calculate growth rate for a specific metric"""
-    metric_data = df[df['metrics'] == metric].sort_values('year')
+    metric_data = df[df['metrics'] == metric].sort_values('date')
     
     if len(metric_data) < 2:
         return {"error": "Insufficient data points for growth calculation"}
     
     start_value = metric_data['value'].iloc[0]
     end_value = metric_data['value'].iloc[-1]
-    start_year = metric_data['year'].iloc[0]
-    end_year = metric_data['year'].iloc[-1]
+    start_date = metric_data['date'].iloc[0]
+    end_date = metric_data['date'].iloc[-1]
     
     # Validate to prevent division by zero
     if start_value == 0:
@@ -272,10 +322,10 @@ def calculate_growth_rate(df, metric, method='simple'):
         growth = ((end_value - start_value) / start_value)
     elif method == 'cagr':
         # Calculate CAGR (Compound Annual Growth Rate)
-        years = end_year - start_year
-        if years == 0:
+        days = (end_date - start_date).days
+        if days == 0:
             return {"error": "Time period must be greater than zero for CAGR calculation"}
-        growth = (end_value / start_value) ** (1 / years) - 1
+        growth = (end_value / start_value) ** (365 / days) - 1
     else:
         growth = ((end_value - start_value) / start_value)
     
@@ -283,8 +333,8 @@ def calculate_growth_rate(df, metric, method='simple'):
         "rate": growth * 100,  # Convert to percentage
         "start_value": float(start_value),
         "end_value": float(end_value),
-        "start_year": int(start_year),
-        "end_year": int(end_year),
+        "start_date": start_date.strftime('%b %Y'),
+        "end_date": end_date.strftime('%b %Y'),
         "method": method
     }
 
@@ -293,13 +343,13 @@ def compare_metrics(df, metrics, method='absolute'):
     result = {}
     
     for metric in metrics:
-        metric_data = df[df['metrics'] == metric].sort_values('year')
+        metric_data = df[df['metrics'] == metric].sort_values('date')
         if not metric_data.empty:
             result[metric] = {
-                "latest": float(metric_data.sort_values('year', ascending=False)['value'].iloc[0]),
-                "earliest": float(metric_data.sort_values('year')['value'].iloc[0]),
+                "latest": float(metric_data.sort_values('date', ascending=False)['value'].iloc[0]),
+                "earliest": float(metric_data.sort_values('date')['value'].iloc[0]),
                 "average": float(metric_data['value'].mean()),
-                "years": sorted(metric_data['year'].unique().tolist())
+                "months": sorted(metric_data['date'].dt.strftime('%b %Y').unique().tolist())
             }
     
     # Add comparative analysis
@@ -323,11 +373,24 @@ def compare_metrics(df, metrics, method='absolute'):
 def calculate_correlation(df, metric1, metric2):
     """Calculate correlation between two metrics"""
     # Get data for both metrics
-    df1 = df[df['metrics'] == metric1][['year', 'value']].rename(columns={'value': metric1})
-    df2 = df[df['metrics'] == metric2][['year', 'value']].rename(columns={'value': metric2})
+    df1 = df[df['metrics'] == metric1][['date', 'value']].sort_values('date')
+    df2 = df[df['metrics'] == metric2][['date', 'value']].sort_values('date')
     
-    # Merge on year
-    merged = pd.merge(df1, df2, on='year')
+    # Merge data to ensure we're comparing the same timepoints
+    # First, create a date index for all dates in both dataframes
+    all_dates = sorted(set(df1['date'].tolist() + df2['date'].tolist()))
+    
+    # Create dataframes with full date ranges
+    df1_full = pd.DataFrame({'date': all_dates})
+    df1_full = df1_full.merge(df1, on='date', how='left').fillna(method='ffill')
+    df1_full.rename(columns={'value': metric1}, inplace=True)
+    
+    df2_full = pd.DataFrame({'date': all_dates})
+    df2_full = df2_full.merge(df2, on='date', how='left').fillna(method='ffill')
+    df2_full.rename(columns={'value': metric2}, inplace=True)
+    
+    # Merge on date
+    merged = pd.merge(df1_full, df2_full, on='date')
     
     if len(merged) < 2:
         return {"error": "Insufficient data points for correlation calculation"}
@@ -338,7 +401,8 @@ def calculate_correlation(df, metric1, metric2):
         return {
             "coefficient": float(correlation),
             "strength": interpret_correlation(correlation),
-            "data_points": len(merged)
+            "data_points": len(merged),
+            "date_range": f"{merged['date'].min().strftime('%b %Y')} - {merged['date'].max().strftime('%b %Y')}"
         }
     except Exception as e:
         return {"error": f"Error calculating correlation: {str(e)}"}
@@ -409,18 +473,14 @@ def simple_finance_chat():
                 st.error(f"Your file must contain the following columns: {', '.join(required_columns)}")
                 return
             
-            # Ensure year is integer
-            df['year'] = df['year'].astype(int)
+            # Clean and convert date column
+            df = clean_date_column(df)
             
             # Display data summary
             st.write("### Data Summary")
             
-            # Create a more structured display
-            unique_years = sorted(df['year'].unique())
-            unique_metrics = sorted(df['metrics'].unique())
-            
-            # Create pivot table for better visualization
-            pivot_df = df.pivot(index='metrics', columns='year', values='value')
+            # Create a more structured display with the new date format
+            pivot_df = df.pivot_table(index='metrics', columns='date', values='value', aggfunc='first')
             st.dataframe(pivot_df)
             
             # Input field for user question
@@ -429,6 +489,7 @@ def simple_finance_chat():
             if question:
                 with st.spinner("Analyzing your query..."):
                     # Parse the query
+                    unique_metrics = sorted(df['metrics'].unique())
                     params = interpret_financial_query(question, list(unique_metrics))
                     
                     # Show parsed parameters (optional - can be commented out)
