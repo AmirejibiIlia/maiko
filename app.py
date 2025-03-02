@@ -19,17 +19,21 @@ def simple_finance_chat():
             st.error(f"Your file must contain the following columns: {', '.join(required_columns)}")
             return
         
-        # Convert 'value' column to numeric to avoid formatting errors
+        # Convert value column to numeric and clean NaN values
         df["value"] = pd.to_numeric(df["value"], errors="coerce")
         df.dropna(subset=["value"], inplace=True)
         
-        # Convert data to a more readable format for prompting
-        data_summary = ""
-        for year in df['year'].unique():
+        # Aggregate data by year and metric
+        summary_df = df.groupby(["year", "metrics"])['value'].sum().reset_index()
+        
+        # Format data summary in a structured way
+        data_summary = "Financial Data Summary:\n"
+        for year in summary_df["year"].unique():
             data_summary += f"\nYear {year}:\n"
-            year_data = df[df['year'] == year]
-            for _, row in year_data.iterrows():
-                data_summary += f"{row['metrics']}: {row['value']}\n"
+            metrics_data = summary_df[summary_df["year"] == year]
+            for _, row in metrics_data.iterrows():
+                formatted_value = f"{row['value']:,.2f}"  # Format with thousand separators
+                data_summary += f"{row['metrics']}: {formatted_value}\n"
         
         # Display data summary
         st.write("### Data Summary")
