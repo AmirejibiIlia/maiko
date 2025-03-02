@@ -129,7 +129,7 @@ def simple_finance_chat():
                 for metric in metrics_list:
                     metric_df = df[df['metrics'] == metric]
                     total = metric_df['value'].sum()
-                    dates = metric_df['year'].tolist()
+                    dates = [str(date) for date in metric_df['year'].tolist()]  # Convert to string
                     data_summary += f"{metric}: Total {total}, Dates: {', '.join(dates)}\n"
                 
                 # Generate prompt for the AI
