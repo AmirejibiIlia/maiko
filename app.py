@@ -19,6 +19,10 @@ def simple_finance_chat():
             st.error(f"Your file must contain the following columns: {', '.join(required_columns)}")
             return
         
+        # Convert 'value' column to numeric to avoid formatting errors
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        df.dropna(subset=["value"], inplace=True)
+        
         # Convert data to a more readable format for prompting
         data_summary = ""
         for year in df['year'].unique():
@@ -30,6 +34,11 @@ def simple_finance_chat():
         # Display data summary
         st.write("### Data Summary")
         st.text(data_summary)
+        
+        # Debugging: Show data preview and summation check
+        st.write("### Debugging Information")
+        st.write("Raw Data Preview:")
+        st.write(df.head())
         
         # Input field for user question
         question = st.text_input("Ask your financial question:")
