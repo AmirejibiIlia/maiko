@@ -4,7 +4,7 @@ import streamlit as st
 
 def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA")
-    st.write("ატვირთე ფაილი და გამწურე, რატი!!")
+    st.write("ატვირთე ფაილი და იგრიალე!")
     
     # File uploader for the Excel file
     uploaded_file = st.file_uploader("Upload your financial data Excel file", type=["xlsx"])
@@ -43,11 +43,13 @@ def simple_finance_chat():
             Please analyze this financial data and answer the question. If the question asks for trends or comparisons,
             express the percent changes when relevant. Answer in Georgian language.
             Rules for answering:
-            1. Do not provide additional information, for example trends, comparisons, or additional analysis unless specifically requested.
-            2. If asked about a specific metric in a specific year, provide just that number
-            3. If asked about trends, compare numbers and calculate percentage changes
-            4. If asked about highest/lowest values, specify both the year and the value
-            5. Format numbers with thousand separators for better readability
+            1. **Perform all calculations with precision** – use exact arithmetic operations instead of estimations.  
+            2. **If the question involves addition, subtraction, multiplication, or division, compute the exact result.**   
+            3. Do not provide additional information, for example trends, comparisons, or additional analysis unless specifically requested.
+            4. If asked about a specific metric in a specific year, provide just that number
+            5. If asked about trends, compare numbers and calculate percentage changes
+            6. If asked about highest/lowest values, specify both the year and the value
+            7. Format numbers with thousand separators for better readability
             """
             
             # Initialize Claude client
