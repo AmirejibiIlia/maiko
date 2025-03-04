@@ -188,25 +188,86 @@ import pandas as pd
 import streamlit as st
 import anthropic
 
-def execute_query(json_object):
-    """Simulated function to execute the query on financial data."""
-    df = pd.DataFrame(json_object["data"])
+def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
+               aggregations: dict = None, order_by: list = None) -> pd.DataFrame:
+    """Main function that ties together all the SQL-like operations."""
+    # Convert 'year' column to datetime if not already
+    if 'year' in data.columns and not pd.api.types.is_datetime64_any_dtype(data['year']):
+        data['year'] = pd.to_datetime(data['year'], format='%d.%m.%y')
     
-    # Filtering by metrics
-    metric_filter = json_object["where"]["metrics"]["="]
-    df = df[df["metrics"] == metric_filter]
+    # Apply operations step by step
+    data = apply_where(data, where)
+    data = group_and_aggregate(data, group_by, aggregations)
+    data = apply_order_by(data, order_by)
     
-    # Aggregating values
-    df = df.groupby(json_object["group_by"]).agg({"value": "sum"}).reset_index()
+    return data
+
+def apply_where(data: pd.DataFrame, where: dict) -> pd.DataFrame:
+    """Applies WHERE conditions to the DataFrame."""
+    if where:
+        for column, condition in where.items():
+            for operator, value in condition.items():
+                # Convert value to datetime only if it's a valid date string
+                if isinstance(value, str) and ('.' in value or '-' in value):  # Check if it's a date-like string
+                    value = pd.to_datetime(value, format='%d.%m.%y', errors='coerce')  # Use 'coerce' to handle invalid dates
+                if operator == '>=':
+                    data = data[data[column] >= value]
+                elif operator == '<':
+                    data = data[data[column] < value]
+                elif operator == '=':
+                    data = data[data[column] == value]
+                elif operator == '!=':
+                    data = data[data[column] != value]
+                elif operator == '<=':
+                    data = data[data[column] <= value]
+                elif operator == '>':
+                    data = data[data[column] > value]
+    return data
+
+def group_and_aggregate(data: pd.DataFrame, group_by: list, aggregations: dict) -> pd.DataFrame:
+    """Groups the DataFrame by specified columns and applies aggregations, renaming the resulting columns."""
+    if group_by:
+        data = data.groupby(group_by, as_index=False).agg(aggregations)
     
-    # Renaming aggregated column
-    df.rename(columns={"value": "value_sum"}, inplace=True)
+    # Rename columns to match SQL-style SELECT aliases
+    new_columns = []
+    for col in data.columns:
+        if isinstance(col, tuple):  # Multi-index columns from aggregation
+            new_columns.append(f"{col[0]}_{col[1]}")  # Example: 'Sales_sum'
+        else:
+            new_columns.append(col)  # Keep original column name
+
+    data.columns = new_columns  # Assign new column names
+    return data
+
+def apply_order_by(data: pd.DataFrame, order_by: list) -> pd.DataFrame:
+    """Applies ORDER BY sorting to the DataFrame."""
+    if order_by:
+        for col, ascending in order_by:
+            if isinstance(data, pd.DataFrame):  # Check if it's a DataFrame
+                data = data.sort_values(by=col, ascending=ascending)
+    return data
+
+def execute_query(query_json: dict) -> pd.DataFrame:
+    """
+    Executes the query by receiving the general JSON-like object with all query parameters.
+    The query_json structure should include 'data', 'where', 'group_by', 'aggregations', and 'order_by'.
+    """
+    # Extract parameters from the provided JSON object
+    data = query_json.get("data")
+    where = query_json.get("where")
+    group_by = query_json.get("group_by")
+    aggregations = query_json.get("aggregations")
+    order_by = query_json.get("order_by")
     
-    # Sorting results
-    order_by_col, descending = json_object["order_by"][0]
-    df = df.sort_values(by=order_by_col, ascending=not descending)
+    # Call query_data with the parameters extracted from the JSON-like object
+    result = query_data(data, 
+                        where=where, 
+                        group_by=group_by, 
+                        aggregations=aggregations, 
+                        order_by=order_by)
     
-    return df
+    return result
 
 def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA")
