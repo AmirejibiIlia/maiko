@@ -292,7 +292,7 @@ def simple_finance_chat():
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             prompt = f"""
             Convert the following financial question into a structured JSON query:
-            Question: {question}
+            Question: {question}. Answer in Georgian language. Question will come in Georgian, translate it with precision and do task.
             
             Example response format:
             {{
