@@ -184,11 +184,9 @@
 # # #     simple_finance_chat()
 
 
-
 import pandas as pd
 import streamlit as st
 import anthropic
-
 
 def execute_query(json_object):
     """Simulated function to execute the query on financial data."""
@@ -237,7 +235,7 @@ def simple_finance_chat():
             
             Example response format:
             {{
-                "data": financial_data,
+                "data": df,
                 "where": {{ "metrics": {{ "=": "income from service" }} }},
                 "group_by": ["metrics"],
                 "aggregations": {{ "value": ["sum"] }},
@@ -255,6 +253,12 @@ def simple_finance_chat():
                 
                 query_json = eval(response.content[0].text)
                 query_json["data"] = df.to_dict(orient="records")  # Inject financial data
+                
+                st.write("### Your Question:")
+                st.write(question)
+                
+                st.write("### Generated JSON Query:")
+                st.json(query_json)
                 
                 result_df = execute_query(query_json)
                 
