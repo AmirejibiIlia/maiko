@@ -239,7 +239,7 @@ def simple_finance_chat():
             try:
                 response = client.messages.create(
                     model="claude-3-sonnet-20240229",
-                    max_tokens=500,
+                    max_tokens=1000,
                     temperature=0,
                     messages=[{"role": "user", "content": prompt}]
                 )
