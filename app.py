@@ -195,11 +195,26 @@ def simple_finance_chat():
         
         if question:
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
-            prompt = f"""
-            Convert the following financial question into a structured JSON query:
-            Question: {question}. 
+            #### Old prompt
+            # prompt = f"""
+            # Convert the following financial question into a structured JSON query:
+            # Question: {question}. 
             
-            Example response format:
+            # Example response format:
+            # {{
+            #     "data": df,
+            #     "where": {{ "metrics": {{ "=": "income from service" }} }},
+            #     "group_by": ["metrics"],
+            #     "aggregations": {{ "value": ["sum"] }},
+            #     "order_by": [("value_sum", False)]
+            # }}
+            # """
+            #### New prompt
+            prompt = f"""
+            Convert the following financial question into a structured JSON query.
+            Ensure the JSON follows **exactly** this format:
+
+            Example:
             {{
                 "data": df,
                 "where": {{ "metrics": {{ "=": "income from service" }} }},
@@ -207,7 +222,19 @@ def simple_finance_chat():
                 "aggregations": {{ "value": ["sum"] }},
                 "order_by": [("value_sum", False)]
             }}
+
+            Important Rules:
+            1. Always include `"where"` if the question contains a filter.
+            2. `"group_by"` should match the relevant metric, like `["metrics"]`.
+            3. `"aggregations"` should always use `"value"`, not `"income"` or other keys.
+            4. `"order_by"` should contain tuples like `[("value_sum", False)]` if sorting is needed.
+
+            Now, generate a JSON query for the following question:
+            Question: {question}
+
+            Return **only** the JSON output, without explanations.
             """
+        
             
             try:
                 response = client.messages.create(
