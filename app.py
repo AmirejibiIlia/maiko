@@ -313,7 +313,8 @@ def simple_finance_chat():
                 )
                 
                 query_json = eval(response.content[0].text)
-                query_json["data"] = df.to_dict(orient="records")  # Inject financial data
+                # query_json["data"] = df.to_dict(orient="records")  # Inject financial data
+                query_json["data"] = df
                 
                 st.write("### Your Question:")
                 st.write(question)
