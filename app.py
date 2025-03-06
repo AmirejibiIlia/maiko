@@ -224,6 +224,8 @@ def simple_finance_chat():
             }}
 
             Important Rules:
+            
+            Take into account that the data consists of daily incomes of various metrics.
             1. Always include `"where"` if the question contains a filter.
             2. `"group_by"` should match the relevant metric, like `["metrics"]`.
             3. `"aggregations"` should always use `"value"`, not `"income"` or other keys.
