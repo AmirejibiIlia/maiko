@@ -224,7 +224,7 @@ def simple_finance_chat():
                 "data": df,
                 "where": {{ "metrics": {{ "=": "income from service" }} }},
                 "group_by": ["metrics"],
-                "aggregations": { "value": ["sum"] },
+                "aggregations": {{ "value": ["sum"] }},
                 "order_by": [("value_sum", False)]
             }}
 
