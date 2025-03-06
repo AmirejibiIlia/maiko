@@ -212,6 +212,11 @@ def simple_finance_chat():
             #### New prompt
             prompt = f"""
             Convert the following financial question into a structured JSON query.
+            Here is structure of df you should build json query for:
+            1) metrics - numerous types of income
+            2) year - date of income, daily
+            3) value - amount of income
+            
             Ensure the JSON follows **exactly** this format:
 
             Example:
