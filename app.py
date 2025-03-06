@@ -89,9 +89,197 @@
 
 # # #### BOTH CODE ABOVE AND BELOW WORKS FINE
 
+# import pandas as pd
+# import streamlit as st
+# import anthropic
+
+# def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
+#                aggregations: dict = None, order_by: list = None) -> pd.DataFrame:
+#     """Main function that ties together all the SQL-like operations."""
+#     # Convert 'year' column to datetime if not already
+#     if 'year' in data.columns and not pd.api.types.is_datetime64_any_dtype(data['year']):
+#         data['year'] = pd.to_datetime(data['year'], format='%d.%m.%y')
+    
+#     # Apply operations step by step
+#     data = apply_where(data, where)
+#     data = group_and_aggregate(data, group_by, aggregations)
+#     data = apply_order_by(data, order_by)
+    
+#     return data
+
+# def apply_where(data: pd.DataFrame, where: dict) -> pd.DataFrame:
+#     """Applies WHERE conditions to the DataFrame."""
+#     if where:
+#         for column, condition in where.items():
+#             for operator, value in condition.items():
+#                 # Convert value to datetime only if it's a valid date string
+#                 if isinstance(value, str) and ('.' in value or '-' in value):  # Check if it's a date-like string
+#                     value = pd.to_datetime(value, format='%d.%m.%y', errors='coerce')  # Use 'coerce' to handle invalid dates
+#                 if operator == '>=':
+#                     data = data[data[column] >= value]
+#                 elif operator == '<':
+#                     data = data[data[column] < value]
+#                 elif operator == '=':
+#                     data = data[data[column] == value]
+#                 elif operator == '!=':
+#                     data = data[data[column] != value]
+#                 elif operator == '<=':
+#                     data = data[data[column] <= value]
+#                 elif operator == '>':
+#                     data = data[data[column] > value]
+#     return data
+
+# def group_and_aggregate(data: pd.DataFrame, group_by: list, aggregations: dict) -> pd.DataFrame:
+#     """Groups the DataFrame by specified columns and applies aggregations, renaming the resulting columns."""
+#     if group_by:
+#         data = data.groupby(group_by, as_index=False).agg(aggregations)
+    
+#     # Rename columns to match SQL-style SELECT aliases
+#     new_columns = []
+#     for col in data.columns:
+#         if isinstance(col, tuple):  # Multi-index columns from aggregation
+#             new_columns.append(f"{col[0]}_{col[1]}")  # Example: 'Sales_sum'
+#         else:
+#             new_columns.append(col)  # Keep original column name
+
+#     data.columns = new_columns  # Assign new column names
+#     return data
+
+# def apply_order_by(data: pd.DataFrame, order_by: list) -> pd.DataFrame:
+#     """Applies ORDER BY sorting to the DataFrame."""
+#     if order_by:
+#         for col, ascending in order_by:
+#             if isinstance(data, pd.DataFrame):  # Check if it's a DataFrame
+#                 data = data.sort_values(by=col, ascending=ascending)
+#     return data
+
+# def execute_query(query_json: dict) -> pd.DataFrame:
+#     """
+#     Executes the query by receiving the general JSON-like object with all query parameters.
+#     The query_json structure should include 'data', 'where', 'group_by', 'aggregations', and 'order_by'.
+#     """
+#     # Extract parameters from the provided JSON object
+#     data = query_json.get("data")
+#     where = query_json.get("where")
+#     group_by = query_json.get("group_by")
+#     aggregations = query_json.get("aggregations")
+#     order_by = query_json.get("order_by")
+    
+#     # Call query_data with the parameters extracted from the JSON-like object
+#     result = query_data(data, 
+#                         where=where, 
+#                         group_by=group_by, 
+#                         aggregations=aggregations, 
+#                         order_by=order_by)
+    
+#     return result
+
+# def simple_finance_chat():
+#     st.title("სალამი, მე ვარ MAIA")
+#     st.write("ატვირთე ფაილი და იგრიალე!")
+    
+#     uploaded_file = st.file_uploader("Upload your financial data Excel file", type=["xlsx"])
+    
+#     if uploaded_file is not None:
+#         df = pd.read_excel(uploaded_file)
+#         required_columns = {"year", "metrics", "value"}
+        
+#         if not required_columns.issubset(df.columns):
+#             st.error(f"Your file must contain the following columns: {', '.join(required_columns)}")
+#             return
+        
+#         df["value"] = pd.to_numeric(df["value"], errors="coerce")
+#         df.dropna(subset=["value"], inplace=True)
+        
+#         question = st.text_input("Ask your financial question:")
+        
+#         if question:
+#             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
+#             #### Old prompt
+#             # prompt = f"""
+#             # Convert the following financial question into a structured JSON query:
+#             # Question: {question}. 
+            
+#             # Example response format:
+#             # {{
+#             #     "data": df,
+#             #     "where": {{ "metrics": {{ "=": "income from service" }} }},
+#             #     "group_by": ["metrics"],
+#             #     "aggregations": {{ "value": ["sum"] }},
+#             #     "order_by": [("value_sum", False)]
+#             # }}
+#             # """
+#             #### New prompt
+#             prompt = f"""
+#             Convert the following financial question into a structured JSON query.
+#             Here is the structure of df you should build the JSON query for:
+#             1) metrics - numerous types of income
+#             2) year - date of income, daily
+#             3) value - amount of income
+
+#             Ensure the JSON follows **exactly** this format:
+
+#             Example:
+#             {
+#                 "data": df,
+#                 "where": { "metrics": { "=": "income from service" } },
+#                 "group_by": ["metrics"],
+#                 "aggregations": { "value": ["sum"] },
+#                 "order_by": [("value_sum", False)]
+#             }
+
+#             Important Rules:
+
+#             Take into account that the data consists of daily incomes of various metrics.
+#             1. Always include `"where"` if the question contains a filter.
+#             2. Use `"group_by"` if needed. `"group_by"` should match the relevant metric, like `["metrics"]`.
+#             3. `"aggregations"` must be a dictionary where the key is always `"value"`, and the corresponding value must be an array containing `"sum"`, like `"aggregations": { "value": ["sum"] }`.
+#             4. `"order_by"` should contain tuples like `[("value_sum", False)]` if sorting is needed.
+
+#             Now, generate a JSON query for the following question:
+#             Question: {question}
+
+#             Return **only** the JSON output, without explanations.
+#             """
+        
+            
+#             try:
+#                 response = client.messages.create(
+#                     model="claude-3-sonnet-20240229",
+#                     max_tokens=1000,
+#                     temperature=0,
+#                     messages=[{"role": "user", "content": prompt}]
+#                 )
+                
+#                 query_json = eval(response.content[0].text)
+#                 # query_json["data"] = df.to_dict(orient="records")  # Inject financial data
+#                 query_json["data"] = df
+                
+#                 st.write("### Your Question:")
+#                 st.write(question)
+                
+#                 st.write("### Generated JSON Query:")
+#                 st.json(query_json)
+                
+#                 result_df = execute_query(query_json)
+                
+#                 st.write("### Query Result:")
+#                 st.dataframe(result_df)
+                
+#             except Exception as e:
+#                 st.error(f"Error: {str(e)}")
+
+# if __name__ == "__main__":
+#     simple_finance_chat()
+
+
+### another crazy test below
+
 import pandas as pd
 import streamlit as st
 import anthropic
+import json
+import re
 
 def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
                aggregations: dict = None, order_by: list = None) -> pd.DataFrame:
@@ -114,7 +302,10 @@ def apply_where(data: pd.DataFrame, where: dict) -> pd.DataFrame:
             for operator, value in condition.items():
                 # Convert value to datetime only if it's a valid date string
                 if isinstance(value, str) and ('.' in value or '-' in value):  # Check if it's a date-like string
-                    value = pd.to_datetime(value, format='%d.%m.%y', errors='coerce')  # Use 'coerce' to handle invalid dates
+                    try:
+                        value = pd.to_datetime(value, format='%d.%m.%y', errors='coerce')  # Use 'coerce' to handle invalid dates
+                    except:
+                        pass  # If conversion fails, keep as string
                 if operator == '>=':
                     data = data[data[column] >= value]
                 elif operator == '<':
@@ -174,6 +365,30 @@ def execute_query(query_json: dict) -> pd.DataFrame:
     
     return result
 
+def extract_json_from_response(text):
+    """Extract JSON from Claude's response text, which might contain explanations."""
+    # Try to find JSON between curly braces using regex
+    json_match = re.search(r'\{.*\}', text, re.DOTALL)
+    if json_match:
+        json_str = json_match.group(0)
+        try:
+            # Safely parse JSON
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            # If it's not valid JSON, try cleaning it up
+            # This deals with potential issues like single quotes instead of double quotes
+            clean_json_str = json_str.replace("'", '"')
+            # Also replace any Python tuples with JSON arrays
+            clean_json_str = re.sub(r'\(([^)]*)\)', r'[\1]', clean_json_str)
+            # Fix trailing commas which aren't allowed in JSON
+            clean_json_str = re.sub(r',\s*}', '}', clean_json_str)
+            clean_json_str = re.sub(r',\s*]', ']', clean_json_str)
+            try:
+                return json.loads(clean_json_str)
+            except json.JSONDecodeError:
+                raise ValueError("Could not parse JSON response from Claude")
+    raise ValueError("No JSON found in Claude's response")
+
 def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA")
     st.write("ატვირთე ფაილი და იგრიალე!")
@@ -195,54 +410,31 @@ def simple_finance_chat():
         
         if question:
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
-            #### Old prompt
-            # prompt = f"""
-            # Convert the following financial question into a structured JSON query:
-            # Question: {question}. 
             
-            # Example response format:
-            # {{
-            #     "data": df,
-            #     "where": {{ "metrics": {{ "=": "income from service" }} }},
-            #     "group_by": ["metrics"],
-            #     "aggregations": {{ "value": ["sum"] }},
-            #     "order_by": [("value_sum", False)]
-            # }}
-            # """
-            #### New prompt
             prompt = f"""
             Convert the following financial question into a structured JSON query.
-            Here is the structure of df you should build the JSON query for:
-            1) metrics - numerous types of income
-            2) year - date of income, daily
-            3) value - amount of income
+            The data has columns: year, metrics, value.
 
-            Ensure the JSON follows **exactly** this format:
-
-            Example:
-            {
+            Example format:
+            {{
                 "data": df,
-                "where": { "metrics": { "=": "income from service" } },
+                "where": {{ "metrics": {{ "=": "income from service" }} }},
                 "group_by": ["metrics"],
-                "aggregations": { "value": ["sum"] },
-                "order_by": [("value_sum", False)]
-            }
+                "aggregations": {{ "value": ["sum"] }},
+                "order_by": [["value_sum", false]]
+            }}
 
             Important Rules:
+            1. Always use double quotes for strings in JSON
+            2. Use arrays [] for lists, not tuples ()
+            3. Use "true" and "false" (lowercase) for boolean values
+            4. Return only valid JSON - no explanation text
 
-            Take into account that the data consists of daily incomes of various metrics.
-            1. Always include `"where"` if the question contains a filter.
-            2. Use `"group_by"` if needed. `"group_by"` should match the relevant metric, like `["metrics"]`.
-            3. `"aggregations"` must be a dictionary where the key is always `"value"`, and the corresponding value must be an array containing `"sum"`, like `"aggregations": { "value": ["sum"] }`.
-            4. `"order_by"` should contain tuples like `[("value_sum", False)]` if sorting is needed.
-
-            Now, generate a JSON query for the following question:
             Question: {question}
-
-            Return **only** the JSON output, without explanations.
+            
+            Return ONLY the JSON object, nothing else.
             """
         
-            
             try:
                 response = client.messages.create(
                     model="claude-3-sonnet-20240229",
@@ -251,23 +443,40 @@ def simple_finance_chat():
                     messages=[{"role": "user", "content": prompt}]
                 )
                 
-                query_json = eval(response.content[0].text)
-                # query_json["data"] = df.to_dict(orient="records")  # Inject financial data
-                query_json["data"] = df
-                
-                st.write("### Your Question:")
-                st.write(question)
-                
-                st.write("### Generated JSON Query:")
-                st.json(query_json)
-                
-                result_df = execute_query(query_json)
-                
-                st.write("### Query Result:")
-                st.dataframe(result_df)
+                # Parse the response using our helper function
+                try:
+                    query_json = extract_json_from_response(response.content[0].text)
+                    
+                    # Fix order_by format if needed
+                    if "order_by" in query_json and query_json["order_by"]:
+                        order_by_list = []
+                        for item in query_json["order_by"]:
+                            # Convert JSON array to tuple
+                            if isinstance(item, list) and len(item) == 2:
+                                order_by_list.append((item[0], item[1]))
+                        query_json["order_by"] = order_by_list
+                    
+                    # Inject financial data
+                    query_json["data"] = df
+                    
+                    st.write("### Your Question:")
+                    st.write(question)
+                    
+                    st.write("### Generated JSON Query:")
+                    st.json({k: str(v) if k == "data" else v for k, v in query_json.items()})
+                    
+                    result_df = execute_query(query_json)
+                    
+                    st.write("### Query Result:")
+                    st.dataframe(result_df)
+                    
+                except Exception as e:
+                    st.error(f"Error parsing Claude's response: {str(e)}")
+                    st.write("### Claude's Raw Response:")
+                    st.write(response.content[0].text)
                 
             except Exception as e:
-                st.error(f"Error: {str(e)}")
+                st.error(f"Error communicating with Claude: {str(e)}")
 
 if __name__ == "__main__":
     simple_finance_chat()
