@@ -222,7 +222,7 @@ def simple_finance_chat():
             Example:
             {
                 "data": df,
-                "where": { "metrics": { "=": "income from service" } },
+                "where": {{ "metrics": {{ "=": "income from service" }} }},
                 "group_by": ["metrics"],
                 "aggregations": { "value": ["sum"] },
                 "order_by": [("value_sum", False)]
