@@ -396,7 +396,7 @@ def simple_finance_chat():
                 "where": {{ "metrics": {{ "=": "income from production" }} }},
                 "group_by": ["metrics"],
                 "aggregations": {{ "value": ["sum"] }},
-                "order_by": [["value_sum", false]]
+                "order_by": [("value_sum", False)]
             }}
 
             Important Rules:
