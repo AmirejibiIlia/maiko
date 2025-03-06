@@ -212,28 +212,28 @@ def simple_finance_chat():
             #### New prompt
             prompt = f"""
             Convert the following financial question into a structured JSON query.
-            Here is structure of df you should build json query for:
+            Here is the structure of df you should build the JSON query for:
             1) metrics - numerous types of income
             2) year - date of income, daily
             3) value - amount of income
-            
+
             Ensure the JSON follows **exactly** this format:
 
             Example:
-            {{
+            {
                 "data": df,
-                "where": {{ "metrics": {{ "=": "income from service" }} }},
+                "where": { "metrics": { "=": "income from service" } },
                 "group_by": ["metrics"],
-                "aggregations": {{ "value": ["sum"] }},
+                "aggregations": { "value": ["sum"] },
                 "order_by": [("value_sum", False)]
-            }}
+            }
 
             Important Rules:
-            
+
             Take into account that the data consists of daily incomes of various metrics.
             1. Always include `"where"` if the question contains a filter.
-            2. Use group_by if needed. `"group_by"` should match the relevant metric, like `["metrics"]`.
-            3. `"aggregations"`s dictionary should always value is an array. It should always use `"value"`, not `"income"` or other keys.
+            2. Use `"group_by"` if needed. `"group_by"` should match the relevant metric, like `["metrics"]`.
+            3. `"aggregations"` must be a dictionary where the key is always `"value"`, and the corresponding value must be an array containing `"sum"`, like `"aggregations": { "value": ["sum"] }`.
             4. `"order_by"` should contain tuples like `[("value_sum", False)]` if sorting is needed.
 
             Now, generate a JSON query for the following question:
