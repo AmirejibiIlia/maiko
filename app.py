@@ -214,30 +214,20 @@ def simple_finance_chat():
             Convert the following financial question into a structured JSON query.
             Ensure the JSON follows **exactly** this format:
 
-            Examples:
-            1. For questions about specific metrics:
-            {
+            Example:
+            {{
                 "data": df,
-                "where": { "metrics": { "=": "income from service" } },
+                "where": {{ "metrics": {{ "=": "income from service" }} }},
                 "group_by": ["metrics"],
-                "aggregations": { "value": ["sum"] },
+                "aggregations": {{ "value": ["sum"] }},
                 "order_by": [("value_sum", False)]
-            }
-
-            2. For questions about total/overall/all income (without breakdown):
-            {
-                "data": df,
-                "where": { "metrics": { "like": "%income%" } },
-                "aggregations": { "value": ["sum"] }
-            }
+            }}
 
             Important Rules:
             1. Always include `"where"` if the question contains a filter.
-            2. Include `"group_by": ["metrics"]` ONLY if the question asks for a breakdown by different income types.
-            3. OMIT `"group_by"` if the question asks for a total/overall sum without breakdown.
-            4. `"aggregations"` should always use `"value"`, not `"income"` or other keys.
-            5. `"order_by"` should contain tuples like `[("value_sum", False)]` if sorting is needed.
-            6. For questions about "total income", "all income", "overall income", etc., do NOT include `"group_by"`.
+            2. `"group_by"` should match the relevant metric, like `["metrics"]`.
+            3. `"aggregations"` should always use `"value"`, not `"income"` or other keys.
+            4. `"order_by"` should contain tuples like `[("value_sum", False)]` if sorting is needed.
 
             Now, generate a JSON query for the following question:
             Question: {question}
