@@ -220,10 +220,10 @@ def simple_finance_chat():
             Ensure the JSON follows **exactly** this format:
 
             Example:
-            for question: what is sum of income from production?
+        
             {
                 "data": df,
-                "where": {{ "metrics": {{ "=": "income from production" }} }},
+                "where": { "metrics": { "=": "income from production" } },
                 "group_by": ["metrics"],
                 "aggregations": { "value": ["sum"] },
                 "order_by": [("value_sum", False)]
