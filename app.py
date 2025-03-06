@@ -233,7 +233,7 @@ def simple_finance_chat():
             Take into account that the data consists of daily incomes of various metrics.
             1. Always include `"where"` if the question contains a filter.
             2. Use group_by if needed. `"group_by"` should match the relevant metric, like `["metrics"]`.
-            3. `"aggregations"` should always use `"value"`, not `"income"` or other keys.
+            3. `"aggregations"`s dictionary should always value is an array. It should always use `"value"`, not `"income"` or other keys.
             4. `"order_by"` should contain tuples like `[("value_sum", False)]` if sorting is needed.
 
             Now, generate a JSON query for the following question:
