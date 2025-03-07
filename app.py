@@ -431,7 +431,7 @@ def simple_finance_chat():
             - `value`: Numerical amount of income
 
             ## Required JSON Structure
-            Your response must follow this exact format:
+            Your response must follow this exact format. Not values, only format:
             ```json
             {
                 "data": "df",
