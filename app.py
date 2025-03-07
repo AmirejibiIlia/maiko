@@ -715,8 +715,8 @@ def simple_finance_chat():
             5. **"order_by"**: List of arrays for sorting results - Optional
             - Each tuple contains: (column_name, sort_direction)
             - Column names often include aggregation suffix (e.g., `"value_sum"`)
-            - Sort direction: has two possible boolean values, with first letter upper case - `False` for descending, `True` for ascending
-            - Example: `[["value_sum", False]]` sorts by total value in descending order
+            - Sort direction: has two possible boolean values,`false` for descending, `true` for ascending
+            - Example: `[["value_sum", false]]` sorts by total value in descending order
 
             ## Implementation Rules
             - Always include `"where"` when question mentions specific metrics or time periods
