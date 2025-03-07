@@ -438,26 +438,26 @@ def simple_finance_chat():
 
             ## Technical Specifications
 
-            1. **"data"**: Always set to `df` (the dataframe variable name)
+            1. **"data"**: Always set to `df` (the dataframe variable name) - Mandatory
 
-            2. **"where"**: A filtering dictionary specifying conditions
+            2. **"where"**: A filtering dictionary specifying conditions - Optional
             - Keys represent column names to filter on
             - Values are nested dictionaries with operator-value pairs
             - Operators include: "=", ">", "<", ">=", "<=", "!="
             - Example: `{"metrics": {"=": "income from production"}}` filters for rows where metrics equals "income from production"
             - Multiple conditions can be specified as separate key-value pairs
 
-            3. **"group_by"**: List of columns to group by
+            3. **"group_by"**: List of columns to group by - Optional
             - To group question should ask grouping
             - Example of groupings: `["year"]`, `["metrics"]`, or `["year", "metrics"]`
             
 
-            4. **"aggregations"**: Dictionary defining aggregation operations
+            4. **"aggregations"**: Dictionary defining aggregation operations - Optional
             - Key: Column to aggregate (typically `"value"`)
             - Value: List of aggregation functions (typically `["sum"]`)
             - Example: `{"value": ["sum"]}` calculates sum of values in each group
 
-            5. **"order_by"**: List of tuples for sorting results
+            5. **"order_by"**: List of tuples for sorting results - Optional
             - Each tuple contains: (column_name, sort_direction)
             - Column names often include aggregation suffix (e.g., `"value_sum"`)
             - Sort direction: has two possible boolean values, with first letter upper case - `False` for descending, `True` for ascending
