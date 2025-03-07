@@ -423,7 +423,7 @@ def simple_finance_chat():
             - `value`: Numerical amount of income
 
             ## Required JSON Structure
-            Your response must follow this exact format:
+            Your response must follow this exact format but this key-value pairs are to be changed based on question:
             ```json
             {
                 "data": "df",
@@ -448,7 +448,7 @@ def simple_finance_chat():
             - Multiple conditions can be specified as separate key-value pairs
 
             3. **"group_by"**: List of columns to group by - Optional
-            - To group question should ask grouping
+            - Only group in case question asks grouping, based on data structure.
             - Example of groupings: `["year"]`, `["metrics"]`, or `["year", "metrics"]`
             
 
