@@ -494,6 +494,10 @@ def simple_finance_chat():
                 
                 # Use json.loads instead of eval to safely parse the JSON
                 query_json_text = response.content[0].text.strip()
+                
+                st.write("Response content from Claude:")
+                st.write(query_json_text)  # Print the raw response content
+                
                 # Remove any non-JSON text (in case Claude adds explanations)
                 if query_json_text.startswith("```json"):
                     query_json_text = query_json_text.split("```json")[1]
