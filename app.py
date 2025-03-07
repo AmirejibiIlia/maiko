@@ -414,9 +414,10 @@ def simple_finance_chat():
             # Return **only** the JSON output, without explanations.
             # """
             prompt = '''
-            Convert the following financial question into a structured JSON query object, that will contain arguments for SQL query.
+            Question: {question}
+            
+            Convert the following financial question into a structured JSON query object, that will contain arguments for SQL like operational query_data().
             So, JSON query object should consist of "where","group_by","aggregations","order_by" parts. 
-            This is my data handlerquery_data that works like SQL. You prepare json object that is inside.
             
             query_data( data, 
                         where=where, 
@@ -478,7 +479,7 @@ def simple_finance_chat():
             - Include `"order_by"` when question mentions sorting or ranking (e.g., "highest", "lowest")
             - Dates should be formatted as "YYYY-MM-DD"
 
-            Question: {question}
+            
 
             Return only the JSON object, without explanations.
             
