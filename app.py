@@ -437,8 +437,8 @@ def simple_finance_chat():
             {
                 "data": "df",
                 "where": {
-                    "column_name": {"operator": "filter_value"}
-                },
+                            "column_name" : { } 
+                            }, // Empty unless filters are explicitly mentioned
                 "group_by": ["column_name"],
                 "aggregations": {"column_name": ["aggregation_function"]},
                 "order_by": [["column_name_with_suffix", boolean]]
