@@ -432,16 +432,16 @@ def simple_finance_chat():
             - `value`: Numerical amount of income
 
             ## Required JSON Structure
-            Your response must follow this exact format. Not values, only format:
+            Your response must follow this exact format (structure only, not these example values):
             ```json
             {
                 "data": "df",
                 "where": {
-                    "metrics": {"=": "income from production"}
+                    "column_name": {"operator": "filter_value"}
                 },
-                "group_by": ["year"],
-                "aggregations": {"value": ["sum"]},
-                "order_by": [["value_sum", false]]
+                "group_by": ["column_name"],
+                "aggregations": {"column_name": ["aggregation_function"]},
+                "order_by": [["column_name_with_suffix", boolean]]
             }
             ```
 
