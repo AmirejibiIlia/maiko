@@ -725,7 +725,7 @@ def simple_finance_chat():
             - Include `"order_by"` when question mentions sorting or ranking (e.g., "highest", "lowest")
             - Dates should be formatted as "YYYY-MM-DD"
 
-            Return only the JSON object in valid JSON format.
+            VERY IMPORTANT: Return only a valid JSON object without any markdown formatting, comments, or explanations.
             '''
             
             try:
@@ -738,17 +738,19 @@ def simple_finance_chat():
                 
                 response_text = response.content[0].text.strip()
                 
-                # Display raw response for debugging (can be removed later)
+                # Display raw response for debugging (can be removed in production)
                 st.write("### Raw Response from Claude:")
                 st.write(response_text)
                 
-                # Extract JSON from the response
-                json_text = extract_json_from_text(response_text)
-                st.write("### Extracted JSON:")
-                st.write(json_text)
+                # Directly parse the JSON
+                try:
+                    query_json = json.loads(response_text)
+                except json.JSONDecodeError:
+                    # If direct parsing fails, try a basic cleanup
+                    # This removes any markdown code block indicators
+                    cleaned_text = response_text.replace("```json", "").replace("```", "").strip()
+                    query_json = json.loads(cleaned_text)
                 
-                # Parse the JSON
-                query_json = json.loads(json_text)
                 query_json["data"] = df
                 
                 # Fix order_by format if needed - ensure it's a list of lists, not tuples
@@ -770,11 +772,13 @@ def simple_finance_chat():
                 st.error(f"Error: {str(e)}")
                 st.error(f"Response content: {response.content[0].text if 'response' in locals() else 'No response'}")
                 
-                # Show more detailed error info for JSON parsing errors
-                if "json.loads" in str(e) or "Expecting value" in str(e):
-                    st.error("JSON parsing error. Check the structure of the response.")
-                    if 'response' in locals():
-                        st.code(response.content[0].text, language="json")
+                # Show debugging info for JSON parsing errors
+                if isinstance(e, json.JSONDecodeError):
+                    st.error("JSON parsing error. Check the response structure.")
+                    if 'response_text' in locals():
+                        st.write("Problematic character position:", e.pos)
+                        st.write("Character causing the error:", response_text[e.pos:e.pos+10] if e.pos < len(response_text) else "End of string")
+                        st.code(response_text, language="json")
 
 if __name__ == "__main__":
     simple_finance_chat()
