@@ -459,8 +459,8 @@ def simple_finance_chat():
             5. **"order_by"**: List of tuples for sorting results
             - Each tuple contains: (column_name, sort_direction)
             - Column names often include aggregation suffix (e.g., `"value_sum"`)
-            - Sort direction: `false` for descending, `true` for ascending
-            - Example: `[("value_sum", false)]` sorts by total value in descending order
+            - Sort direction: `False` for descending, `True` for ascending (boolean)
+            - Example: `[("value_sum", False)]` sorts by total value in descending order
 
             ## Implementation Rules
             - Always include `"where"` when question mentions specific metrics or time periods
