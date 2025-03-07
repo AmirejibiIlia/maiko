@@ -432,7 +432,7 @@ def simple_finance_chat():
                 },
                 "group_by": ["year"],
                 "aggregations": {"value": ["sum"]},
-                "order_by": [("value_sum", false)]
+                "order_by": [["value_sum", false]]
             }
             ```
 
@@ -457,11 +457,11 @@ def simple_finance_chat():
             - Value: List of aggregation functions (typically `["sum"]`)
             - Example: `{"value": ["sum"]}` calculates sum of values in each group
 
-            5. **"order_by"**: List of tuples for sorting results - Optional
+            5. **"order_by"**: List of arrays for sorting results - Optional
             - Each tuple contains: (column_name, sort_direction)
             - Column names often include aggregation suffix (e.g., `"value_sum"`)
             - Sort direction: has two possible boolean values, with first letter upper case - `False` for descending, `True` for ascending
-            - Example: `[("value_sum", False)]` sorts by total value in descending order
+            - Example: `[["value_sum", False]]` sorts by total value in descending order
 
             ## Implementation Rules
             - Always include `"where"` when question mentions specific metrics or time periods
