@@ -448,8 +448,9 @@ def simple_finance_chat():
             - Multiple conditions can be specified as separate key-value pairs
 
             3. **"group_by"**: List of columns to group by
-            - Common groupings: `["year"]`, `["metrics"]`, or `["year", "metrics"]`
-            - Must be relevant to the question being asked
+            - To group question should ask grouping
+            - Example of groupings: `["year"]`, `["metrics"]`, or `["year", "metrics"]`
+            
 
             4. **"aggregations"**: Dictionary defining aggregation operations
             - Key: Column to aggregate (typically `"value"`)
@@ -459,7 +460,7 @@ def simple_finance_chat():
             5. **"order_by"**: List of tuples for sorting results
             - Each tuple contains: (column_name, sort_direction)
             - Column names often include aggregation suffix (e.g., `"value_sum"`)
-            - Sort direction: `False` for descending, `True` for ascending (boolean)
+            - Sort direction: has two possible boolean values, with first letter upper case - `False` for descending, `True` for ascending
             - Example: `[("value_sum", False)]` sorts by total value in descending order
 
             ## Implementation Rules
