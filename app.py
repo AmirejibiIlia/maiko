@@ -44,8 +44,12 @@ def apply_where(data: pd.DataFrame, where: dict) -> pd.DataFrame:
 def group_and_aggregate(data: pd.DataFrame, group_by: list, aggregations: dict) -> pd.DataFrame:
     """Groups the DataFrame by specified columns and applies aggregations, renaming the resulting columns."""
     if group_by:
+        # If grouping by certain columns, perform the aggregation
         data = data.groupby(group_by, as_index=False).agg(aggregations)
-    
+    else:
+        # If no grouping is needed, simply apply the aggregation over the whole dataset
+        data = pd.DataFrame(data.agg(aggregations)).transpose()
+
     # Rename columns to match SQL-style SELECT aliases
     new_columns = []
     for col in data.columns:
