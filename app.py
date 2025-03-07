@@ -438,7 +438,7 @@ def simple_finance_chat():
 
             ## Technical Specifications
 
-            1. **"data"**: Always set to `"df"` (the dataframe variable name)
+            1. **"data"**: Always set to `df` (the dataframe variable name)
 
             2. **"where"**: A filtering dictionary specifying conditions
             - Keys represent column names to filter on
