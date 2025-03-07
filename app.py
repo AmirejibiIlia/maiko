@@ -298,9 +298,10 @@ def apply_where(data: pd.DataFrame, where: dict) -> pd.DataFrame:
     if where:
         for column, condition in where.items():
             for operator, value in condition.items():
-                # Convert value to datetime only if it's a valid date string
-                if isinstance(value, str) and ('.' in value or '-' in value):  # Check if it's a date-like string
-                    value = pd.to_datetime(value, format='%d.%m.%y', errors='coerce')  # Use 'coerce' to handle invalid dates
+                # Convert value to datetime if the column is 'year' (or any datetime column)
+                if column == "year" and isinstance(value, str):  
+                    value = pd.to_datetime(value, format='%Y-%m-%d', errors='coerce')  
+                    
                 if operator == '>=':
                     data = data[data[column] >= value]
                 elif operator == '<':
@@ -382,37 +383,97 @@ def simple_finance_chat():
         if question:
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             
-            prompt = f"""
-            Convert the following financial question into a structured JSON query.
-            Here is the structure of df you should build the JSON query for:
-            1) metrics - numerous types of income
-            2) year - date of income, daily
-            3) value - amount of income
+            # prompt = f"""
+            # Convert the following financial question into a structured JSON query.
+            # Here is the structure of df you should build the JSON query for:
+            # 1) metrics - numerous types of income
+            # 2) year - date of income, daily
+            # 3) value - amount of income
 
-            Ensure the JSON follows **exactly** this format:
+            # Ensure the JSON follows **exactly** this format:
 
-            {{
-                "data": "df",
-                "where": {{ "metrics": {{ "=": "income from production" }} }},
-                "group_by": ["metrics"],
-                "aggregations": {{ "value": ["sum"] }},
-                "order_by": [["value_sum", false]]
-            }}
+            # {{
+            #     "data": "df",
+            #     "where": {{ "metrics": {{ "=": "income from production" }} }},
+            #     "group_by": ["metrics"],
+            #     "aggregations": {{ "value": ["sum"] }},
+            #     "order_by": [["value_sum", false]]
+            # }}
 
-            Important Rules:
+            # Important Rules:
 
-            Take into account that the data consists of daily incomes of various metrics.
-            1. Always include `"where"` if the question contains a filter.
-            2. Use `"group_by"` if needed. `"group_by"` should match the relevant metric, like `["metrics"]`.
-            3. `"aggregations"` must be a dictionary where the key is always `"value"`, and the corresponding value must be an array containing `"sum"`, like `"aggregations": {{ "value": ["sum"] }}`.
-            4. `"order_by"` should be a list of lists like `[["value_sum", false]]` if sorting is needed.
+            # Take into account that the data consists of daily incomes of various metrics.
+            # 1. Always include `"where"` if the question contains a filter.
+            # 2. Use `"group_by"` if needed. `"group_by"` should match the relevant metric, like `["metrics"]`.
+            # 3. `"aggregations"` must be a dictionary where the key is always `"value"`, and the corresponding value must be an array containing `"sum"`, like `"aggregations": {{ "value": ["sum"] }}`.
+            # 4. `"order_by"` should be a list of lists like `[["value_sum", false]]` if sorting is needed.
 
-            Now, generate a JSON query for the following question:
+            # Now, generate a JSON query for the following question:
+            # Question: {question}
+
+            # Return **only** the JSON output, without explanations.
+            # """
+            prompt = '''
+            Convert the following financial question into a structured JSON query object.
+
+            ## Available Data Structure
+            The dataframe contains financial data with these key columns:
+            - `metrics`: Various types of income categories
+            - `year`: Date of income (daily granularity)
+            - `value`: Numerical amount of income
+
+            ## Required JSON Structure
+            Your response must follow this exact format:
+            ```json
+            {
+                "data": df,
+                "where": {
+                    "metrics": {"=": "income from production"}
+                },
+                "group_by": ["year"],
+                "aggregations": {"value": ["sum"]},
+                "order_by": [("value_sum", false)]
+            }
+            ```
+
+            ## Technical Specifications
+
+            1. **"data"**: Always set to `df` (the dataframe variable name)
+
+            2. **"where"**: A filtering dictionary specifying conditions
+            - Keys represent column names to filter on
+            - Values are nested dictionaries with operator-value pairs
+            - Operators include: "=", ">", "<", ">=", "<=", "!="
+            - Example: `{"metrics": {"=": "income from production"}}` filters for rows where metrics equals "income from production"
+            - Multiple conditions can be specified as separate key-value pairs
+
+            3. **"group_by"**: List of columns to group by
+            - Common groupings: `["year"]`, `["metrics"]`, or `["year", "metrics"]`
+            - Must be relevant to the question being asked
+
+            4. **"aggregations"**: Dictionary defining aggregation operations
+            - Key: Column to aggregate (typically `"value"`)
+            - Value: List of aggregation functions (typically `["sum"]`)
+            - Example: `{"value": ["sum"]}` calculates sum of values in each group
+
+            5. **"order_by"**: List of tuples for sorting results
+            - Each tuple contains: (column_name, sort_direction)
+            - Column names often include aggregation suffix (e.g., `"value_sum"`)
+            - Sort direction: `false` for descending, `true` for ascending
+            - Example: `[("value_sum", false)]` sorts by total value in descending order
+
+            ## Implementation Rules
+            - Always include `"where"` when question mentions specific metrics or time periods
+            - Use appropriate `"group_by"` based on the question's focus (by year, by metric type, etc.)
+            - For aggregations, use `"value"` as the key and include appropriate functions (typically `["sum"]`)
+            - Include `"order_by"` when question mentions sorting or ranking (e.g., "highest", "lowest")
+            - Dates should be formatted as "YYYY-MM-DD"
+
             Question: {question}
 
-            Return **only** the JSON output, without explanations.
-            """
-        
+            Return only the JSON object, without explanations.
+            
+            '''
             try:
                 response = client.messages.create(
                     model="claude-3-sonnet-20240229",
