@@ -182,16 +182,18 @@ def simple_finance_chat():
             - Example: `{{"value": ["sum"]}}` calculates sum of values in each group
 
             5. **"order_by"**: List of arrays for sorting results - Optional
+            - Only order by in case question asks ordering, based on data column.
             - Each tuple contains: (column_name, sort_direction)
             - Column names often include aggregation suffix (e.g., `"value_sum"`)
             - Sort direction: has two possible boolean values,`false` for descending, `true` for ascending
             - Example: `[["value_sum", false]]` sorts by total value in descending order
 
             ## Implementation Rules
+            - Include any of above Optional components if and only if asked.
             - Always include `"where"` when question mentions specific metrics or time periods
             - Use appropriate `"group_by"` based on the question's focus (by year, by metric type, etc.)
             - For aggregations, use `"value"` as the key and include appropriate functions (typically `["sum"]`)
-            - Include `"order_by"` when question mentions sorting or ranking (e.g., "highest", "lowest")
+            - Include `"order_by"` !only! when question mentions sorting or ranking (e.g., "highest", "lowest")
             - Dates should be formatted as "YYYY-MM-DD"
 
             VERY IMPORTANT: Return only a valid JSON object without any markdown formatting, comments, or explanations.
