@@ -348,7 +348,7 @@ def simple_finance_chat():
                     - Example: `"group_by": ["year_only"]`
                 - When user asks for weekly data, use EXACTLY `"week"` as a string in group_by
                     - Example: `"group_by": ["week"]`
-            - For combining time periods with other columns (e.g., "quarterly income by metrics"):
+            - For combining time periods with other columns (e.g., "monthly income by metrics"):
                 - Include both the time period and the column name in the group_by list
                 - Example: `"group_by": ["month", "metrics"]` for monthly data by metrics
                 - Always put time period first, then other grouping columns
@@ -359,9 +359,9 @@ def simple_finance_chat():
             - Key: Column to aggregate (typically `"value"`)
             - Value: List of aggregation functions (e.g., `["sum"]`, `["mean"]`, `["count"]`, or multiple like `["sum", "mean"]`)
             - Examples: 
-            - `{"value": ["sum"]}` calculates sum of values in each group
-            - `{"value": ["mean"]}` calculates average value in each group
-            - `{"value": ["sum", "mean"]}` calculates both sum and average in each group
+            - `{{"value": ["sum"]}}` calculates sum of values in each group
+            - `{{"value": ["mean"]}}` calculates average value in each group
+            - `{{"value": ["sum", "mean"]}}` calculates both sum and average in each group
             - When a question asks for "average" or "mean", use `"mean"` as the aggregation function
             - When a question asks for "total" or "sum", use `"sum"` as the aggregation function
 
