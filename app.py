@@ -239,15 +239,31 @@ def simple_finance_chat():
             st.write("### Value Statistics")
             st.dataframe(df.groupby('metrics')['value'].agg(['sum', 'mean', 'count']))
         
+        # Convert non-serializable types to strings
+        min_date_str = min_date.strftime('%Y-%m-%d') if hasattr(min_date, 'strftime') else str(min_date)
+        max_date_str = max_date.strftime('%Y-%m-%d') if hasattr(max_date, 'strftime') else str(max_date)
+        
+        # Create sample data that's JSON serializable
+        sample_records = []
+        for _, row in df.head(5).iterrows():
+            record = {}
+            for column, value in row.items():
+                # Convert any timestamps or other problematic types to string
+                if pd.api.types.is_datetime64_any_dtype(pd.Series([value])):
+                    record[column] = value.strftime('%Y-%m-%d')
+                else:
+                    record[column] = str(value) if not isinstance(value, (int, float)) else value
+            sample_records.append(record)
+        
         # Create data context for Claude
         data_context = {
             "metrics_list": unique_metrics.tolist(),
             "date_range": {
-                "min": min_date.strftime('%Y-%m-%d') if isinstance(min_date, pd.Timestamp) else str(min_date),
-                "max": max_date.strftime('%Y-%m-%d') if isinstance(max_date, pd.Timestamp) else str(max_date)
+                "min": min_date_str,
+                "max": max_date_str
             },
             "total_records": len(df),
-            "sample_data": df.head(5).to_dict(orient='records')
+            "sample_data": sample_records
         }
         
         question = st.text_input("Ask your financial question:")
@@ -332,7 +348,7 @@ def simple_finance_chat():
                     temperature=0,
                     messages=[{"role": "user", "content": prompt}]
                 )
-                
+                                
                 response_text = response.content[0].text.strip()
                 
                 # Display raw response for debugging (can be removed in production)
