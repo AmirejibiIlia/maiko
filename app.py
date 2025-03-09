@@ -162,8 +162,19 @@ def interpret_results(df, question):
     {df_json}
     
     Please answer in a clear, concise way to the original question. Answer in Georgian.
+    Keep your answer brief and to the point, focusing only on what was asked in the original question!
     
-    Keep your answer brief and to the point, focusing only on what was asked in the original question.
+    If the question asks for trends or comparisons, express the percent changes when relevant.
+    
+    Rules for answering:
+        1. **Perform all calculations with precision** – use exact arithmetic operations instead of estimations.  
+        2. **If the question involves addition, subtraction, multiplication, or division, compute the exact result.**   
+        3. Do not provide additional information, for example trends, comparisons, or additional analysis unless specifically requested.
+        4. If asked about a specific metric in a specific year, provide just that number
+        5. If asked about trends, compare numbers and calculate percentage changes
+        6. If asked about highest/lowest values, specify both the date and the value
+        7. Format numbers with thousand separators for better readability
+    
     """
     
     response = client.messages.create(
