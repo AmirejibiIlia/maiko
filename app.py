@@ -160,6 +160,57 @@ def interpret_results(df, question):
     
     return response.content[0].text.strip()
 
+def log_question_to_s3(question, uploaded_file_name=None):
+    """
+    Log the user's question to a CSV file in Amazon S3.
+    """
+    try:
+        import boto3
+        import io
+        import csv
+        
+        # Get timestamp
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Create S3 client
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=st.secrets["aws"]["access_key_id"],
+            aws_secret_access_key=st.secrets["aws"]["secret_access_key"],
+            region_name=st.secrets["aws"]["region"]
+        )
+        
+        bucket_name = st.secrets["aws"]["bucket_name"]
+        file_key = "question_logs.csv"
+        
+        # Check if file exists
+        try:
+            response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+            existing_content = response['Body'].read().decode('utf-8')
+        except s3_client.exceptions.NoSuchKey:
+            # File doesn't exist, create with headers
+            existing_content = "timestamp,file_name,question\n"
+        
+        # Prepare CSV data
+        file_name = uploaded_file_name or "None"
+        safe_question = question.replace('"', '""')  # Escape quotes for CSV
+        
+        # Add new row
+        new_row = f'{timestamp},"{file_name}","{safe_question}"\n'
+        updated_content = existing_content + new_row
+        
+        # Upload to S3
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=file_key,
+            Body=updated_content,
+            ContentType='text/csv'
+        )
+        
+    except Exception as e:
+        # Silently fail to not disrupt user experience
+        print(f"Failed to log question to S3: {str(e)}")
+
 
 def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA")
@@ -227,6 +278,9 @@ def simple_finance_chat():
         question = st.text_input("Ask your financial question:")
         
         if question:
+            # Log the question silently to Amazon S3
+            log_question_to_s3(question, "TestDoc")
+            
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             
             # Update prompt with data context
