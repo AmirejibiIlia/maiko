@@ -7,9 +7,9 @@ import re
 def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
                aggregations: dict = None, order_by: list = None) -> pd.DataFrame:
     """Main function that ties together all the SQL-like operations."""
-    # Convert 'year' column to datetime if not already
-    if 'year' in data.columns and not pd.api.types.is_datetime64_any_dtype(data['year']):
-        data['year'] = pd.to_datetime(data['year'], format='%d.%m.%y')
+    # Convert 'date' column to datetime if not already
+    if 'date' in data.columns and not pd.api.types.is_datetime64_any_dtype(data['date']):
+        data['date'] = pd.to_datetime(data['date'], format='%d.%m.%y')
     
     # Apply operations step by step
     data = apply_where(data, where)
@@ -23,8 +23,8 @@ def apply_where(data: pd.DataFrame, where: dict) -> pd.DataFrame:
     if where:
         for column, condition in where.items():
             for operator, value in condition.items():
-                # Convert value to datetime if the column is 'year' (or any datetime column)
-                if column == "year" and isinstance(value, str):  
+                # Convert value to datetime if the column is 'date' (or any datetime column)
+                if column == "date" and isinstance(value, str):  
                     value = pd.to_datetime(value, format='%Y-%m-%d', errors='coerce')  
                     
                 if operator == '>=':
@@ -42,13 +42,35 @@ def apply_where(data: pd.DataFrame, where: dict) -> pd.DataFrame:
     return data
 
 def group_and_aggregate(data: pd.DataFrame, group_by: list, aggregations: dict) -> pd.DataFrame:
-    """Groups the DataFrame by specified columns and applies aggregations, renaming the resulting columns."""
-    if group_by:
-        # If grouping by certain columns, perform the aggregation
-        data = data.groupby(group_by, as_index=False).agg(aggregations)
-    else:
+    """Groups the DataFrame by specified columns and applies aggregations, handling time periods."""
+    if not group_by:
         # If no grouping is needed, simply apply the aggregation over the whole dataset
         data = pd.DataFrame(data.agg(aggregations)).transpose()
+    else:
+        # Process special time period groupings
+        processed_group_by = []
+        data_copy = data.copy()
+        
+        for group_col in group_by:
+            # Handle special time period groupings
+            if group_col == 'quarter':
+                data_copy['quarter'] = data_copy['date'].dt.to_period('Q').astype(str)
+                processed_group_by.append('quarter')
+            elif group_col == 'month':
+                data_copy['month'] = data_copy['date'].dt.to_period('M').astype(str)
+                processed_group_by.append('month')
+            elif group_col == 'year_only':
+                data_copy['year_only'] = data_copy['date'].dt.year
+                processed_group_by.append('year_only')
+            elif group_col == 'week':
+                data_copy['week'] = data_copy['date'].dt.isocalendar().week
+                processed_group_by.append('week')
+            else:
+                # Regular column
+                processed_group_by.append(group_col)
+        
+        # Perform grouping with processed columns
+        data = data_copy.groupby(processed_group_by, as_index=False).agg(aggregations)
 
     # Rename columns to match SQL-style SELECT aliases
     new_columns = []
@@ -118,7 +140,7 @@ def simple_finance_chat():
     
     if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
-        required_columns = {"year", "metrics", "value"}
+        required_columns = {"date", "metrics", "value"}
         
         if not required_columns.issubset(df.columns):
             st.error(f"Your file must contain the following columns: {', '.join(required_columns)}")
@@ -138,8 +160,8 @@ def simple_finance_chat():
             st.write(", ".join(unique_metrics))
             
             # Display time range
-            min_date = df['year'].min()
-            max_date = df['year'].max()
+            min_date = df['date'].min()
+            max_date = df['date'].max()
             st.write(f"### Time Range: {min_date} to {max_date}")
             
             # Display basic statistics
@@ -190,7 +212,7 @@ def simple_finance_chat():
             ## Available Data Structure
             The dataframe contains financial data with these key columns:
             - `metrics`: Various types of income categories denominated in Georgian Language
-            - `year`: Date of income (daily granularity)
+            - `date`: Date of income (daily granularity)
             - `value`: Numerical amount of income
 
             ## Required JSON Structure
@@ -220,7 +242,12 @@ def simple_finance_chat():
 
             3. **"group_by"**: List of columns to group by - Optional
             - Only group in case question asks grouping, based on data structure.
-            - Example of groupings: `["year"]`, `["metrics"]`, or `["year", "metrics"]`
+            - Example of standard groupings: `["date"]`, `["metrics"]`, or `["date", "metrics"]`
+            - Example of time-based groupings: `["quarter"]`, `["month"]`, `["year_only"]`, `["week"]`
+            - For quarterly data, include "quarter" in the list
+            - For monthly data, include "month" in the list
+            - For yearly data, include "year_only" in the list
+            - For weekly data, include "week" in the list
             
 
             4. **"aggregations"**: Dictionary defining aggregation operations - Optional
@@ -238,12 +265,18 @@ def simple_finance_chat():
             ## Implementation Rules
             - Include any of above Optional components if and only if asked.
             - Always include `"where"` when question mentions specific metrics or time periods
-            - Use appropriate `"group_by"` based on the question's focus (by year, by metric type, etc.)
+            - Use appropriate `"group_by"` based on the question's focus (by date, by metric type, etc.)
+            - For time period groupings:
+              - When user asks for quarterly data, use `"quarter"` in group_by
+              - When user asks for monthly data, use `"month"` in group_by
+              - When user asks for yearly data, use `"year_only"` in group_by
+              - When user asks for weekly data, use `"week"` in group_by
             - For aggregations, use `"value"` as the key and include appropriate functions (typically `["sum"]`)
             - Include `"order_by"` !only! when question mentions sorting or ranking (e.g., "highest", "lowest")
             - Dates should be formatted as "YYYY-MM-DD"
             - When the question is vague or doesn't specify filters, use the context from Data Overview to provide sensible defaults
             - Match metrics names exactly as they appear in the metrics_list from the data context
+
 
             VERY IMPORTANT: Return only a valid JSON object without any markdown formatting, comments, or explanations.
             '''
