@@ -174,6 +174,7 @@ def interpret_results(df, question):
         5. If asked about trends, compare numbers and calculate percentage changes
         6. If asked about highest/lowest values, specify both the date and the value
         7. Format numbers with thousand separators for better readability
+        8. Give structured output!
     
     """
     
