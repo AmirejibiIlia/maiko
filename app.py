@@ -3,6 +3,9 @@ import streamlit as st
 import anthropic
 import json
 import re
+import boto3
+import io
+import csv
 
 def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
                aggregations: dict = None, order_by: list = None) -> pd.DataFrame:
@@ -165,9 +168,6 @@ def log_question_to_s3(question, uploaded_file_name=None):
     Log the user's question to a CSV file in Amazon S3.
     """
     try:
-        import boto3
-        import io
-        import csv
         
         # Get timestamp
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
