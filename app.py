@@ -146,7 +146,7 @@ def simple_finance_chat():
 
             ## Available Data Structure
             The dataframe contains financial data with these key columns:
-            - `metrics`: Various types of income categories
+            - `metrics`: Various types of income categories denominated in Georgian Language
             - `year`: Date of income (daily granularity)
             - `value`: Numerical amount of income
 
