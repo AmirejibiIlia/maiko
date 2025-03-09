@@ -77,9 +77,21 @@ def group_and_aggregate(data: pd.DataFrame, group_by: list, aggregations: dict) 
 
     # Rename columns to match SQL-style SELECT aliases
     new_columns = []
+    
+    # for col in data.columns:
+    #     if isinstance(col, tuple):  # Multi-index columns from aggregation
+    #         new_columns.append(f"{col[0]}_{col[1]}")  # Example: 'Sales_sum'
+    #     else:
+    #         new_columns.append(col)  # Keep original column name
+    
     for col in data.columns:
         if isinstance(col, tuple):  # Multi-index columns from aggregation
-            new_columns.append(f"{col[0]}_{col[1]}")  # Example: 'Sales_sum'
+            if isinstance(col[1], list):
+                # Handle case where aggregation is a list like ["sum"]
+                new_columns.append(f"{col[0]}_{col[1][0]}")
+            else:
+                # Handle case where aggregation is a string like "sum"
+                new_columns.append(f"{col[0]}_{col[1]}")
         else:
             new_columns.append(col)  # Keep original column name
 
