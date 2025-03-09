@@ -244,10 +244,16 @@ def simple_finance_chat():
             - Only group in case question asks grouping, based on data structure.
             - Example of standard groupings: `["date"]`, `["metrics"]`, or `["date", "metrics"]`
             - Example of time-based groupings: `["quarter"]`, `["month"]`, `["year_only"]`, `["week"]`
-            - For quarterly data, include "quarter" in the list
-            - For monthly data, include "month" in the list
-            - For yearly data, include "year_only" in the list
-            - For weekly data, include "week" in the list
+            - For time period groupings:
+            - When user asks for quarterly data, use EXACTLY `"quarter"` as a string in group_by, NOT SQL functions
+                - Example: `"group_by": ["quarter"]`
+            - When user asks for monthly data, use EXACTLY `"month"` as a string in group_by
+                - Example: `"group_by": ["month"]`
+            - When user asks for yearly data, use EXACTLY `"year_only"` as a string in group_by
+                - Example: `"group_by": ["year_only"]`
+            - When user asks for weekly data, use EXACTLY `"week"` as a string in group_by
+                - Example: `"group_by": ["week"]`
+            - DO NOT use SQL functions like date_trunc() or EXTRACT()
             
 
             4. **"aggregations"**: Dictionary defining aggregation operations - Optional
