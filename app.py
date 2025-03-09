@@ -328,21 +328,30 @@ def simple_finance_chat():
             - Example of standard groupings: `["date"]`, `["metrics"]`, or `["date", "metrics"]`
             - Example of time-based groupings: `["quarter"]`, `["month"]`, `["year_only"]`, `["week"]`
             - For time period groupings:
-            - When user asks for quarterly data, use EXACTLY `"quarter"` as a string in group_by, NOT SQL functions
-                - Example: `"group_by": ["quarter"]`
-            - When user asks for monthly data, use EXACTLY `"month"` as a string in group_by
-                - Example: `"group_by": ["month"]`
-            - When user asks for yearly data, use EXACTLY `"year_only"` as a string in group_by
-                - Example: `"group_by": ["year_only"]`
-            - When user asks for weekly data, use EXACTLY `"week"` as a string in group_by
-                - Example: `"group_by": ["week"]`
+                - When user asks for quarterly data, use EXACTLY `"quarter"` as a string in group_by, NOT SQL functions
+                    - Example: `"group_by": ["quarter"]`
+                - When user asks for monthly data, use EXACTLY `"month"` as a string in group_by
+                    - Example: `"group_by": ["month"]`
+                - When user asks for yearly data, use EXACTLY `"year_only"` as a string in group_by
+                    - Example: `"group_by": ["year_only"]`
+                - When user asks for weekly data, use EXACTLY `"week"` as a string in group_by
+                    - Example: `"group_by": ["week"]`
+            - For combining time periods with other columns (e.g., "quarterly income by metrics"):
+                - Include both the time period and the column name in the group_by list
+                - Example: `"group_by": ["month", "metrics"]` for monthly data by metrics
+                - Always put time period first, then other grouping columns
             - DO NOT use SQL functions like date_trunc() or EXTRACT()
             
-
+            
             4. **"aggregations"**: Dictionary defining aggregation operations - Optional
             - Key: Column to aggregate (typically `"value"`)
-            - Value: List of aggregation functions (typically `["sum"]`)
-            - Example: `{{"value": ["sum"]}}` calculates sum of values in each group
+            - Value: List of aggregation functions (e.g., `["sum"]`, `["mean"]`, `["count"]`, or multiple like `["sum", "mean"]`)
+            - Examples: 
+            - `{"value": ["sum"]}` calculates sum of values in each group
+            - `{"value": ["mean"]}` calculates average value in each group
+            - `{"value": ["sum", "mean"]}` calculates both sum and average in each group
+            - When a question asks for "average" or "mean", use `"mean"` as the aggregation function
+            - When a question asks for "total" or "sum", use `"sum"` as the aggregation function
 
             5. **"order_by"**: List of arrays for sorting results - Optional
             - Only order by in case question asks ordering, based on data column.
@@ -350,6 +359,7 @@ def simple_finance_chat():
             - Column names often include aggregation suffix (e.g., `"value_sum"`)
             - Sort direction: has two possible boolean values,`false` for descending, `true` for ascending
             - Example: `[["value_sum", false]]` sorts by total value in descending order
+            - Example: `[["value_mean", false]]` sorts by average value in descending order
 
             ## Implementation Rules
             - Include any of above Optional components if and only if asked.
