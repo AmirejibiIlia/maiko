@@ -131,6 +131,35 @@ def extract_json_from_text(text):
     # If all else fails, return the original text
     return text
 
+def interpret_results(df, question):
+    """
+    Send the query results back to Claude for interpretation.
+    """
+    client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
+    
+    # Convert the dataframe to a JSON string for Claude
+    df_json = df.to_json(orient='records', date_format='iso')
+    
+    interpretation_prompt = f"""
+    Original question: {question}
+    
+    Query results:
+    {df_json}
+    
+    Please answer in a clear, concise way to the original question. Answer in Georgian.
+    
+    Keep your answer brief and to the point, focusing only on what was asked in the original question.
+    """
+    
+    response = client.messages.create(
+        model="claude-3-sonnet-20240229",
+        max_tokens=1000,
+        temperature=0,
+        messages=[{"role": "user", "content": interpretation_prompt}]
+    )
+    
+    return response.content[0].text.strip()
+
 
 def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA")
@@ -326,6 +355,12 @@ def simple_finance_chat():
                 
                 st.write("### Query Result:")
                 st.dataframe(result_df)
+                
+                # New section: Interpret results using Claude
+                interpretation = interpret_results(result_df, question)
+                
+                st.write("### Interpretation:")
+                st.write(interpretation)
                 
             except Exception as e:
                 st.error(f"Error: {str(e)}")
