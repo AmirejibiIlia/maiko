@@ -274,7 +274,7 @@ def set_background_from_s3():
             div.st-emotion-cache-4z1n9p p,
             .st-emotion-cache-r421ms,
             .element-container {{
-                background-color: rgba(255, 255, 255, 0.85);
+                background-color: rgba(255, 255, 255, 1);
                 padding: 10px;
                 border-radius: 5px;
                 margin-bottom: 10px;
@@ -282,12 +282,12 @@ def set_background_from_s3():
             
             /* Style for dataframes */
             .dataframe {{
-                background-color: rgba(255, 255, 255, 0.9) !important;
+                background-color: rgba(255, 255, 255, 1) !important;
             }}
             
             /* Style for expander headers */
             .st-emotion-cache-10oheav {{
-                background-color: rgba(255, 255, 255, 0.85);
+                background-color: rgba(255, 255, 255, 1);
                 padding: 5px;
                 border-radius: 5px;
             }}
@@ -295,14 +295,14 @@ def set_background_from_s3():
             /* Style for file uploader and input fields */
             .st-emotion-cache-1gulkj5,
             .st-emotion-cache-16toyut {{
-                background-color: rgba(255, 255, 255, 0.85);
+                background-color: rgba(255, 255, 255, 1);
                 padding: 10px;
                 border-radius: 5px;
             }}
             
             /* Style for buttons */
             .stButton > button {{
-                background-color: rgba(255, 255, 255, 0.9) !important;
+                background-color: rgba(255, 255, 255, 1) !important;
             }}
             </style>
             """,
