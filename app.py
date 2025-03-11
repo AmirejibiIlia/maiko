@@ -233,7 +233,7 @@ def log_question_to_s3(question, uploaded_file_name=None):
         
 def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
-    st.write("ატვირთე ფაილი, დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო. ძმა, კაბიანებს ნუ შევეხებით!")
+    st.write("ატვირთე ფაილი, დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
     
     uploaded_file = st.file_uploader("Upload your financial data Excel file", type=["xlsx"])
     
