@@ -6,6 +6,7 @@ import re
 import boto3
 import io
 import csv
+import datetime 
 
 def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
                aggregations: dict = None, order_by: list = None) -> pd.DataFrame:
@@ -189,10 +190,9 @@ def interpret_results(df, question):
 
 def log_question_to_s3(question, uploaded_file_name=None):
     """
-    Log the user's question to a CSV file in Amazon S3.
+    Simple function to log questions to S3
     """
     try:
-        
         # Get timestamp
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
@@ -207,21 +207,17 @@ def log_question_to_s3(question, uploaded_file_name=None):
         bucket_name = st.secrets["aws"]["bucket_name"]
         file_key = "question_logs.csv"
         
-        # Check if file exists
+        # Prepare log entry
+        log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question}\n"
+        
         try:
+            # Try to append to existing file
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             existing_content = response['Body'].read().decode('utf-8')
-        except s3_client.exceptions.NoSuchKey:
-            # File doesn't exist, create with headers
-            existing_content = "timestamp,file_name,question\n"
-        
-        # Prepare CSV data
-        file_name = uploaded_file_name or "None"
-        safe_question = question.replace('"', '""')  # Escape quotes for CSV
-        
-        # Add new row
-        new_row = f'{timestamp},"{file_name}","{safe_question}"\n'
-        updated_content = existing_content + new_row
+            updated_content = existing_content + log_entry
+        except:
+            # Create new file with header if it doesn't exist
+            updated_content = "timestamp,file_name,question\n" + log_entry
         
         # Upload to S3
         s3_client.put_object(
@@ -232,8 +228,8 @@ def log_question_to_s3(question, uploaded_file_name=None):
         )
         
     except Exception as e:
-        # Silently fail to not disrupt user experience
-        print(f"Failed to log question to S3: {str(e)}")
+        # Print error but don't disrupt user experience
+        print(f"Failed to log question: {str(e)}")
 
 
 def simple_finance_chat():
