@@ -190,7 +190,7 @@ def interpret_results(df, question):
 
 def log_question_to_s3(question, uploaded_file_name=None):
     """
-    Simple function to log questions to S3 with proper encoding for Georgian characters
+    Function to log questions to S3 with proper encoding for Georgian characters
     """
     try:
         # Get timestamp
@@ -211,11 +211,11 @@ def log_question_to_s3(question, uploaded_file_name=None):
         log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question}\n"
         
         try:
-            # Try to append to existing file
+            # Try to get the existing content
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-            existing_content = response['Body'].read().decode('utf-8', errors='replace')
+            existing_content = response['Body'].read().decode('utf-8')
             updated_content = existing_content + log_entry
-        except:
+        except Exception as e:
             # Create new file with header if it doesn't exist
             updated_content = "timestamp,file_name,question\n" + log_entry
         
@@ -230,7 +230,7 @@ def log_question_to_s3(question, uploaded_file_name=None):
     except Exception as e:
         # Print error but don't disrupt user experience
         print(f"Failed to log question: {str(e)}")
-
+        
 def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA")
     st.write("ატვირთე ფაილი და იგრიალე!")
