@@ -425,7 +425,7 @@ def simple_finance_chat():
             - Example: `{{"metrics": {{"=": "income from production"}}}}` filters for rows where metrics equals "income from production"
             - Multiple conditions can be specified as separate key-value pairs
             - The "where" should NEVER be empty when the question clearly specifies filtering criteria.
-            - Especially, ALWAYS include a "where" if question refers to filtering metrics, match to those of most relevant value - If multiple matches, include as many as relevants.
+            - Especially, ALWAYS include a "where" if question refers to filtering metrics, match to those of provided into "metrics_list" - If multiple matches, include as many as relevants.
 
             3. **"group_by"**: List of columns to group by - Optional
             - Only group in case question asks grouping, based on data structure.
