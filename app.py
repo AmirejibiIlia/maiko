@@ -7,6 +7,8 @@ import boto3
 import io
 import csv
 import datetime 
+import base64
+
 
 def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
                aggregations: dict = None, order_by: list = None) -> pd.DataFrame:
@@ -231,7 +233,46 @@ def log_question_to_s3(question, uploaded_file_name=None):
         # Print error but don't disrupt user experience
         print(f"Failed to log question: {str(e)}")
         
+def set_background_from_s3():
+    """
+    Function to set a background image from S3 for the Streamlit app
+    """
+    try:
+        # Create S3 client
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=st.secrets["aws"]["access_key_id"],
+            aws_secret_access_key=st.secrets["aws"]["secret_access_key"],
+            region_name=st.secrets["aws"]["region"]
+        )
+        
+        bucket_name = st.secrets["aws"]["bucket_name"]
+        image_key = "amadeo.png"  # The name of your image in S3
+        
+        response = s3_client.get_object(Bucket=bucket_name, Key=image_key)
+        image_bytes = response['Body'].read()
+        encoded_string = base64.b64encode(image_bytes).decode()
+        
+        st.markdown(
+            f"""
+            <style>
+            .stApp {{
+                background-image: url(data:image/png;base64,{encoded_string});
+                background-size: cover;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+    except Exception as e:
+        print(f"Error loading background image: {str(e)}")
+
 def simple_finance_chat():
+    # Set the background image at the beginning
+    set_background_from_s3()
+    
     st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
     st.write("ატვირთე ფაილი, დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
     
