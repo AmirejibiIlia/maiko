@@ -424,6 +424,12 @@ def simple_finance_chat():
             - Operators include: "=", ">", "<", ">=", "<=", "!="
             - Example: `{{"metrics": {{"=": "income from production"}}}}` filters for rows where metrics equals "income from production"
             - Multiple conditions can be specified as separate key-value pairs
+            - The "where" should NEVER be empty when the question clearly specifies filtering criteria.
+            - ALWAYS include a "where" clause in these scenarios:
+                1. When the question references a specific metric name
+                2. When the question mentions a specific time period (year, quarter, month)
+                3. When the question includes value comparisons (greater than, less than, equal to)
+                4. When the question uses words like "for", "in", or "during" followed by a time indicator
 
             3. **"group_by"**: List of columns to group by - Optional
             - Only group in case question asks grouping, based on data structure.
