@@ -262,13 +262,55 @@ def set_background_from_s3():
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
+            
+            /* Add semi-transparent background behind text elements */
+            .st-emotion-cache-1kyxreq h1,
+            .st-emotion-cache-1kyxreq h2,
+            .st-emotion-cache-1kyxreq h3,
+            .st-emotion-cache-1kyxreq p,
+            .st-emotion-cache-1kyxreq div,
+            .st-emotion-cache-1kyxreq li,
+            div.st-emotion-cache-ue6h4q,
+            div.st-emotion-cache-4z1n9p p,
+            .st-emotion-cache-r421ms,
+            .element-container {{
+                background-color: rgba(255, 255, 255, 0.85);
+                padding: 10px;
+                border-radius: 5px;
+                margin-bottom: 10px;
+            }}
+            
+            /* Style for dataframes */
+            .dataframe {{
+                background-color: rgba(255, 255, 255, 0.9) !important;
+            }}
+            
+            /* Style for expander headers */
+            .st-emotion-cache-10oheav {{
+                background-color: rgba(255, 255, 255, 0.85);
+                padding: 5px;
+                border-radius: 5px;
+            }}
+            
+            /* Style for file uploader and input fields */
+            .st-emotion-cache-1gulkj5,
+            .st-emotion-cache-16toyut {{
+                background-color: rgba(255, 255, 255, 0.85);
+                padding: 10px;
+                border-radius: 5px;
+            }}
+            
+            /* Style for buttons */
+            .stButton > button {{
+                background-color: rgba(255, 255, 255, 0.9) !important;
+            }}
             </style>
             """,
             unsafe_allow_html=True
         )
     except Exception as e:
         print(f"Error loading background image: {str(e)}")
-
+        
 def simple_finance_chat():
     # Set the background image at the beginning
     set_background_from_s3()
@@ -480,11 +522,20 @@ def simple_finance_chat():
                 st.write("### Query Result:")
                 st.dataframe(result_df)
                 
-                # New section: Interpret results using Claude
-                interpretation = interpret_results(result_df, question)
+                # # New section: Interpret results using Claude
+                # interpretation = interpret_results(result_df, question)
                 
-                st.write("### Interpretation:")
-                st.write(interpretation)
+                # st.write("### Interpretation:")
+                # st.write(interpretation)
+
+                # New section: Interpret results using Claude
+                interpretation_section = st.container()
+                with interpretation_section:
+                    result_df = execute_query(query_json)
+                    interpretation = interpret_results(result_df, question)
+                        
+                    st.write("### Interpretation:")                
+                    st.markdown(f"<div style='background-color: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
                 
             except Exception as e:
                 st.error(f"Error: {str(e)}")
