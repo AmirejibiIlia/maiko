@@ -467,7 +467,7 @@ def simple_finance_chat():
 
             ## Implementation Rules
             - Include any of above Optional components if and only if asked.
-            - Always include `"where"` when question mentions specific metrics or time periods
+            - Always include `"where"` when question mentions or refers to the specific metrics or time periods
             - Use appropriate `"group_by"` based on the question's focus (by date, by metric type, etc.)
             - For time period groupings:
               - When user asks for quarterly data, use `"quarter"` in group_by
