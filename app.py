@@ -247,7 +247,7 @@ def set_background_from_s3():
         )
         
         bucket_name = st.secrets["aws"]["bucket_name"]
-        image_key = "amadeo-v2.png"  # The name of your image in S3
+        image_key = "amadeo-v3.png"  # The name of your image in S3
         
         response = s3_client.get_object(Bucket=bucket_name, Key=image_key)
         image_bytes = response['Body'].read()
