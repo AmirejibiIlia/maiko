@@ -188,15 +188,53 @@ def interpret_results(df, question):
     
     return response.content[0].text.strip()
 
+# def log_question_to_s3(question, uploaded_file_name=None):
+#     """
+#     Function to log questions to S3 with proper encoding for Georgian characters
+#     """
+#     try:
+#         # Get timestamp
+#         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+#         # Create S3 client
+#         s3_client = boto3.client(
+#             's3',
+#             aws_access_key_id=st.secrets["aws"]["access_key_id"],
+#             aws_secret_access_key=st.secrets["aws"]["secret_access_key"],
+#             region_name=st.secrets["aws"]["region"]
+#         )
+        
+#         bucket_name = st.secrets["aws"]["bucket_name"]
+#         file_key = "question_logs.csv"
+        
+#         # Prepare log entry - ensure question is properly encoded
+#         log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question}\n"
+        
+#         try:
+#             # Try to get the existing content
+#             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+#             existing_content = response['Body'].read().decode('utf-8')
+#             updated_content = existing_content + log_entry
+#         except Exception as e:
+#             # Create new file with header if it doesn't exist
+#             updated_content = "timestamp,file_name,question\n" + log_entry
+        
+#         # Upload to S3 with explicit UTF-8 encoding
+#         s3_client.put_object(
+#             Bucket=bucket_name,
+#             Key=file_key,
+#             Body=updated_content.encode('utf-8'),
+#             ContentType='text/csv; charset=utf-8'
+#         )
+    
+#     except Exception as e:
+#         # Print error but don't disrupt user experience
+#         print(f"Failed to log question: {str(e)}")
+
 def log_question_to_s3(question, uploaded_file_name=None):
-    """
-    Function to log questions to S3 with proper encoding for Georgian characters
-    """
     try:
-        # Get timestamp
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        # Create S3 client
         s3_client = boto3.client(
             's3',
             aws_access_key_id=st.secrets["aws"]["access_key_id"],
@@ -207,19 +245,26 @@ def log_question_to_s3(question, uploaded_file_name=None):
         bucket_name = st.secrets["aws"]["bucket_name"]
         file_key = "question_logs.csv"
         
-        # Prepare log entry - ensure question is properly encoded
         log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question}\n"
         
         try:
-            # Try to get the existing content
+            # Try to get existing content
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             existing_content = response['Body'].read().decode('utf-8')
             updated_content = existing_content + log_entry
-        except Exception as e:
-            # Create new file with header if it doesn't exist
+        except Exception:
+            # Create new file with header and BOM
             updated_content = "timestamp,file_name,question\n" + log_entry
+            # Add BOM when creating a new file
+            s3_client.put_object(
+                Bucket=bucket_name,
+                Key=file_key,
+                Body='\ufeff'.encode('utf-8') + updated_content.encode('utf-8'),
+                ContentType='text/csv; charset=utf-8'
+            )
+            return
         
-        # Upload to S3 with explicit UTF-8 encoding
+        # For appending to existing file, don't add BOM again
         s3_client.put_object(
             Bucket=bucket_name,
             Key=file_key,
@@ -228,7 +273,6 @@ def log_question_to_s3(question, uploaded_file_name=None):
         )
     
     except Exception as e:
-        # Print error but don't disrupt user experience
         print(f"Failed to log question: {str(e)}")
         
 def simple_finance_chat():
