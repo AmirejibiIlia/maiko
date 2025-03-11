@@ -247,7 +247,7 @@ def set_background_from_s3():
         )
         
         bucket_name = st.secrets["aws"]["bucket_name"]
-        image_key = "amadeo.png"  # The name of your image in S3
+        image_key = "background.png"  # The name of your image in S3
         
         response = s3_client.get_object(Bucket=bucket_name, Key=image_key)
         image_bytes = response['Body'].read()
@@ -260,7 +260,26 @@ def set_background_from_s3():
                 background-image: url(data:image/png;base64,{encoded_string});
                 background-size: cover;
                 background-repeat: no-repeat;
+                background-position: bottom;  /* Show more of the lower part */
                 background-attachment: fixed;
+            }}
+            
+            /* Style for better text readability */
+            .st-emotion-cache-1629p8f h1,  /* Title */
+            .st-emotion-cache-1629p8f h2,
+            .st-emotion-cache-1629p8f h3,
+            .st-emotion-cache-1629p8f p {{
+                background-color: rgba(255, 255, 255, 0.8);
+                padding: 10px;
+                border-radius: 5px;
+            }}
+            
+            /* Style for dataframes and expanders */
+            .st-emotion-cache-1wmy9hl, 
+            .st-emotion-cache-fblp2m {{
+                background-color: rgba(255, 255, 255, 0.9);
+                padding: 10px;
+                border-radius: 5px;
             }}
             </style>
             """,
@@ -483,8 +502,17 @@ def simple_finance_chat():
                 # New section: Interpret results using Claude
                 interpretation = interpret_results(result_df, question)
                 
-                st.write("### Interpretation:")
-                st.write(interpretation)
+                # st.write("### Interpretation:")
+                # st.write(interpretation)
+                st.markdown(
+                    f"""
+                    <div style="background-color: rgba(255, 255, 255, 0.85); padding: 15px; border-radius: 10px; margin-top: 20px;">
+                    <h3>Interpretation:</h3>
+                    <p>{interpretation}</p>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
+                )
                 
             except Exception as e:
                 st.error(f"Error: {str(e)}")
