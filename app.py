@@ -406,7 +406,8 @@ def simple_finance_chat():
             - Perform exact string matching between Georgian words in the question and metrics in metrics_list
             - When detecting metric names in the question, look for partial or complete matches with the metrics_list entries
             - Always prefer exact metric names from metrics_list EXACTLY as they appear in the list
-            - IMPORTANT: Since the entire dataset represents different types of "შემოსავლები" (income/revenue), when a question contains only the general term "შემოსავლები" without specifying a particular income category, do NOT apply any filtering on the "metrics" column. Consider such questions as requesting information about all income types collectively.
+            - Multiple conditions can be specified as separate key-value pairs. For example: {"metrics": {"=": "specific income type 1"}, "metrics": {"=": "specific income type 2"}}
+            - The entire dataset is about "შემოსავლები" (income/revenue), so when the question only contains the general word "შემოსავლები" without specifying a particular type, do NOT filter by metrics
             - If the question mentions a metric, you MUST include a "where" clause filtering for that metric
             - Use fuzzy matching if necessary to find the closest matching metric from metrics_list            
 
@@ -432,7 +433,7 @@ def simple_finance_chat():
             - Keys represent column names to filter on
             - Values are nested dictionaries with operator-value pairs
             - Operators include: "=", ">", "<", ">=", "<=", "!="
-            - Example: `{{"metrics": {{"=": "income from production"}}}}` filters for rows where metrics equals "income from production"
+            - Example: `{{"metrics": {{"=": "შემოსავალი მომსახურების მიწოდებიდან 18%"}}}}` filters for rows where metrics equals "შემოსავალი მომსახურების მიწოდებიდან 18%"
             - Multiple conditions can be specified as separate key-value pairs
             - The "where" should NEVER be empty when the question clearly specifies filtering criteria.
             - Especially, ALWAYS include a "where" if question refers to filtering metrics, match to those of provided into "metrics_list" - If multiple matches, include as many as relevants.
