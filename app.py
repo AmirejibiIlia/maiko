@@ -406,7 +406,7 @@ def simple_finance_chat():
             - Perform exact string matching between Georgian words in the question and metrics in metrics_list
             - When detecting metric names in the question, look for partial or complete matches with the metrics_list entries
             - Always prefer exact metric names from metrics_list EXACTLY as they appear in the list
-            - The entire dataset is about "შემოსავლები" (income/revenue), so when the question only contains the general word "შემოსავლები" without specifying a particular type, do NOT filter by metrics
+            - IMPORTANT: Since the entire dataset represents different types of "შემოსავლები" (income/revenue), when a question contains only the general term "შემოსავლები" without specifying a particular income category, do NOT apply any filtering on the "metrics" column. Consider such questions as requesting information about all income types collectively.
             - If the question mentions a metric, you MUST include a "where" clause filtering for that metric
             - Use fuzzy matching if necessary to find the closest matching metric from metrics_list            
 
