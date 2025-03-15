@@ -399,6 +399,15 @@ def simple_finance_chat():
             - `metrics`: Various types of income categories denominated in Georgian Language
             - `date`: Date of income (daily granularity)
             - `value`: Numerical amount of income
+            
+            ## Georgian Language Handling Instructions
+            - CRITICAL: The question is likely in Georgian and metrics in data_context["metrics_list"] are in Georgian
+            - DO NOT translate metrics names from Georgian to English when matching against metrics_list
+            - Perform exact string matching between Georgian words in the question and metrics in metrics_list
+            - When detecting metric names in the question, look for partial or complete matches with the metrics_list entries
+            - Always prefer exact metric names from metrics_list EXACTLY as they appear in the list
+            - If the question mentions a metric, you MUST include a "where" clause filtering for that metric
+            - Use fuzzy matching if necessary to find the closest matching metric from metrics_list            
 
             ## Required JSON Structure
             Your response must follow this exact format (structure only, not these example values):
@@ -426,7 +435,8 @@ def simple_finance_chat():
             - Multiple conditions can be specified as separate key-value pairs
             - The "where" should NEVER be empty when the question clearly specifies filtering criteria.
             - Especially, ALWAYS include a "where" if question refers to filtering metrics, match to those of provided into "metrics_list" - If multiple matches, include as many as relevants.
-
+            - IMPORTANT: Do not translate metrics between Georgian and English - use the exact strings from metrics_list
+            
             3. **"group_by"**: List of columns to group by - Optional
             - Only group in case question asks grouping, based on data structure.
             - Example of standard groupings: `["date"]`, `["metrics"]`, or `["date", "metrics"]`
