@@ -406,7 +406,7 @@ def simple_finance_chat():
             - Perform exact string matching between Georgian words in the question and metrics in metrics_list
             - When detecting metric names in the question, look for partial or complete matches with the metrics_list entries
             - Always prefer exact metric names from metrics_list EXACTLY as they appear in the list
-            - Multiple conditions can be specified as separate key-value pairs.
+            - Multiple conditions can be specified as separate key-value pairs. 
             - The entire dataset is about "შემოსავლები" (income/revenue), so when the question only contains the general word "შემოსავლები" without specifying a particular type, do NOT filter by metrics
             - If the question mentions a metric, you MUST include a "where" clause filtering for that metric
             - Use fuzzy matching if necessary to find the closest matching metric from metrics_list            
@@ -433,7 +433,7 @@ def simple_finance_chat():
             - Keys represent column names to filter on
             - Values are nested dictionaries with operator-value pairs
             - Operators include: "=", ">", "<", ">=", "<=", "!="
-            - Example: `{{"metrics": {{"=": "შემოსავალი მომსახურების მიწოდებიდან 18%"}}}}` filters for rows where metrics equals "შემოსავალი მომსახურების მიწოდებიდან 18%"
+            - Example: `{{"metrics": {{"=": "income from production"}}}}` filters for rows where metrics equals "income from production"
             - Multiple conditions can be specified as separate key-value pairs
             - The "where" should NEVER be empty when the question clearly specifies filtering criteria.
             - Especially, ALWAYS include a "where" if question refers to filtering metrics, match to those of provided into "metrics_list" - If multiple matches, include as many as relevants.
