@@ -525,8 +525,8 @@ def simple_finance_chat():
                 if "order_by" in query_json and query_json["order_by"]:
                     query_json["order_by"] = [[item[0], item[1]] if isinstance(item, tuple) else item for item in query_json["order_by"]]
                 
-                st.write("### Your Question:")
-                st.write(question)
+                # st.write("### Your Question:")
+                # st.write(question)
                 
                 st.write("### Generated JSON Query:")
                 st.json(query_json)
