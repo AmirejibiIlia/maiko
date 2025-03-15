@@ -400,16 +400,23 @@ def simple_finance_chat():
             - `date`: Date of income (daily granularity)
             - `value`: Numerical amount of income
             
-            ## Georgian Language Handling Instructions
-            - CRITICAL: The question is likely in Georgian and metrics in data_context["metrics_list"] are in Georgian
-            - DO NOT translate metrics names from Georgian to English when matching against metrics_list
-            - Perform exact string matching between Georgian words in the question and metrics in metrics_list
-            - When detecting metric names in the question, look for partial or complete matches with the metrics_list entries
-            - Always prefer exact metric names from metrics_list EXACTLY as they appear in the list
-            - Multiple conditions can be specified as separate key-value pairs. 
-            - The entire dataset is about "შემოსავლები" (income/revenue), so when the question only contains the general word "შემოსავლები" without specifying a particular type, do NOT filter by metrics
-            - If the question mentions a metric, you MUST include a "where" clause filtering for that metric
-            - Use fuzzy matching if necessary to find the closest matching metric from metrics_list            
+            ## Georgian Language Handling Instructions     
+            
+            ### Critical Requirements
+            - The user query is in Georgian and all metrics in data_context["metrics_list"] are in Georgian
+            - NEVER translate metric names from Georgian to English during processing
+            - Use exact string matching between Georgian terms in queries and metrics_list entries
+
+            ### Metric Detection Guidelines
+            - Match metrics by searching for complete or partial string matches in the query
+            - Always prioritize exact metric names from metrics_list in their original form
+            - Represent multiple conditions as separate key-value pairs in the query processing
+            - Note: The dataset concerns general "შემოსავლები" (revenue) - only filter by specific metrics when the query clearly intends to know about a particular metric type from metrics_list, not when asking broad questions about revenue
+
+            ### Query Processing Requirements
+            - When a specific metric is mentioned in the query, ALWAYS include a "where" clause filtering for that specific metric
+            - Implement fuzzy matching as a fallback method to identify the closest metric match in metrics_list when exact matching fails but the intent to query a specific metric is clear
+            The revised Note section clarifies that you should only filter for specific metrics when the question shows clear intent to know about a particular metric type, not when asking general questions about revenue. This allows for more flexibility in how the system handles queries with varying levels of specificity.RetryClaude does not have the ability to run the code it generates yet.Claude can make mistakes. Please double-check responses.
 
             ## Required JSON Structure
             Your response must follow this exact format (structure only, not these example values):
