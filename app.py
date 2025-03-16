@@ -167,19 +167,26 @@ def interpret_results(df, question):
     Please answer in a clear, concise way to the original question. Answer in Georgian.
     Keep your answer brief and to the point, focusing only on what was asked in the original question!
         
-    Rules for answering:
-        1. **Perform all calculations with precision** – use exact arithmetic operations instead of estimations.
-        2. **If the question involves addition, subtraction, multiplication, or division, compute the exact result.**
-        3. Do not provide additional information, trends, comparisons, or analysis unless specifically requested.
-        4. If asked about a specific metric in a specific year, provide just that number.
-        5. For percentage changes and growth calculations:
-            - Calculate percentage change as: ((new_value - old_value) / old_value) * 100
-            - Round percentage values to one decimal place
-            - Always specify the time periods being compared (e.g., "Q1 to Q3")
-            - If asked about "biggest/lowest change" or "highest/lowest growth," compare all relevant periods and identify the maximum/minimum
-        6. If asked about highest/lowest values, specify both the date and the value.
-        7. Format numbers with thousand separators for better readability.
-        8. Give structured output!
+    Please answer in a clear, concise way to the original question. Answer in Georgian.
+Keep your answer brief and to the point, focusing only on what was asked in the original question!
+    
+Rules for answering:
+    1. **Perform all calculations with precision** – use exact arithmetic operations instead of estimations.
+    2. **If the question involves addition, subtraction, multiplication, or division, compute the exact result.**
+    3. Do not provide additional information, trends, comparisons, or analysis unless specifically requested.
+    4. If asked about a specific metric in a specific year, provide just that number.
+    5. For questions about increases, decreases, or changes:
+        - Always compare with the previous period unless another period is specified
+        - Include both the absolute value change and the percentage change
+        - Calculate percentage change as: ((new_value - old_value) / old_value) * 100
+        - Round percentage values to one decimal place
+    6. For percentage changes and growth calculations:
+        - If asked about "biggest change" or "highest growth," compare all relevant periods and identify the maximum
+        - Always specify the time periods being compared (e.g., "Q1 to Q2")  
+    7. If asked about highest/lowest values, specify both the date and the value.
+    8. Format numbers with thousand separators for better readability.
+    9. Give structured output!
+    10. Carefully read the question to determine if it's asking about a specific value or about a change in value.
     
     """
     
