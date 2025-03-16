@@ -419,6 +419,11 @@ def simple_finance_chat():
                 - When a specific metric is mentioned in the query, ALWAYS include a "where" clause filtering for that specific metric
                 - Implement fuzzy matching as a fallback method to identify the closest metric match in metrics_list when exact matching fails but the intent to query a specific metric is clear
                 The revised Note section clarifies that you should only filter for specific metrics when the question shows clear intent to know about a particular metric type, not when asking general questions about revenue. This allows for more flexibility in how the system handles queries with varying levels of specificity.RetryClaude does not have the ability to run the code it generates yet.Claude can make mistakes. Please double-check responses.
+                - Time-based questions (containing words like "როდის") still require metric filtering when specific metrics are mentioned
+                - Questions asking for superlatives (like "ყველაზე მეტი" or "ყველაზე დაბალი") should:
+                    1. Filter for the specified metric
+                    2. Include appropriate "order_by" clauses (descending for "მეტი"/highest, ascending for "დაბალი"/lowest)
+                    3. Limit results if appropriate
 
             ## Required JSON Structure
             Your response must follow this exact format (structure only, not these example values):
