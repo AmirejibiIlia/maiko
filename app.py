@@ -187,6 +187,9 @@ Rules for answering:
     8. Format numbers with thousand separators for better readability.
     9. Give structured output!
     10. Carefully read the question to determine if it's asking about a specific value or about a change in value.
+    11. Pay careful attention to the direction of change (increase vs decrease). If the new value is less than the old value, report it as a decrease rather than an increase.
+    12. Double-check your calculation results against the original data to ensure correctness.
+    13. Make sure you're comparing the correct time periods (e.g., Q1→Q2, not Q2→Q1) when calculating changes.
     
     """
     
