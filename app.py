@@ -168,26 +168,34 @@ def interpret_results(df, question):
     Keep your answer brief and to the point, focusing only on what was asked in the original question!
 
     Rules for answering:
-    1. ONLY use the data provided in the dataframe. Do not invent or assume data that isn't in the dataset.
-    
-    2. For the first period in the dataset, there is no previous period to compare with. Only calculate changes starting from the second period in the dataset.
-    
-    3. For questions about largest increase/decrease or growth:
-       - Only calculate changes between consecutive periods that exist in the data
-       - For each period (except the first), calculate the change from the previous period
-       - The period with the largest positive change (for increase) or negative change (for decrease) is the answer
-    
-    4. Always specify exactly which periods are being compared (e.g., "Q2 compared to Q1") and include:
-       - The value before the change
-       - The value after the change
-       - The absolute change amount
-       - The percentage change
-    
-    5. Calculate percentage change exactly: ((new_value - old_value) / old_value) * 100
-    
-    6. Format numbers with thousand separators for better readability
-    
-    7. If a question can't be answered with the provided data, explicitly state that the data is insufficient
+        1. IMPORTANT: Understand that the data represents a time series with sequential time periods.
+        
+        2. For questions about increases, decreases, or changes:
+        - Always calculate changes between consecutive time periods in the data
+        - NEVER skip time periods when calculating changes
+        - Calculate both absolute change and percentage change between consecutive periods
+        
+        3. For questions about "ყველაზე მეტად გაიზარდა" (increased the most) or similar:
+        - Calculate changes between all consecutive time periods in the dataset
+        - Compare the percentage increases (positive changes only)
+        - Identify which period had the highest percentage increase compared to its preceding period
+        - Return that period as the answer, with details about the change
+        
+        4. When answering, include:
+        - Which period had the requested change
+        - The values before and after the change
+        - The absolute amount of change
+        - The percentage change
+        
+        5. Calculate percentage change exactly: ((new_value - old_value) / old_value) * 100
+        
+        6. Format numbers with thousand separators for better readability
+        
+        7. NEVER assume values for time periods not in the dataset
+        
+        8. The first period in the dataset CANNOT be the answer to questions about "biggest increase" or "largest growth" since there is no previous period to compare with
+        
+        9. Ensure you understand the chronological order of the data and always compare each period with its immediate predecessor in time
     
     """
     
