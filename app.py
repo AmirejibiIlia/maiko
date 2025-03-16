@@ -168,28 +168,26 @@ def interpret_results(df, question):
     Keep your answer brief and to the point, focusing only on what was asked in the original question!
 
     Rules for answering:
-    1. For questions about largest increase/decrease or growth:
-       - Calculate the change between each consecutive period (e.g., Q1→Q2, Q2→Q3, Q3→Q4)
-       - For each period, subtract previous period value from current period value
-       - Calculate percentage change for each period
-       - Identify which period had the largest positive change (for increase) or negative change (for decrease)
-       - The period with the largest change is the answer, not the period with the highest absolute value
+    1. ONLY use the data provided in the dataframe. Do not invent or assume data that isn't in the dataset.
     
-    2. Always specify the time periods being compared (e.g., "Q2 compared to Q1") and include:
+    2. For the first period in the dataset, there is no previous period to compare with. Only calculate changes starting from the second period in the dataset.
+    
+    3. For questions about largest increase/decrease or growth:
+       - Only calculate changes between consecutive periods that exist in the data
+       - For each period (except the first), calculate the change from the previous period
+       - The period with the largest positive change (for increase) or negative change (for decrease) is the answer
+    
+    4. Always specify exactly which periods are being compared (e.g., "Q2 compared to Q1") and include:
        - The value before the change
        - The value after the change
        - The absolute change amount
        - The percentage change
     
-    3. Carefully determine if data shows an increase or decrease:
-       - If new_value > old_value, it's an increase
-       - If new_value < old_value, it's a decrease
+    5. Calculate percentage change exactly: ((new_value - old_value) / old_value) * 100
     
-    4. Calculate percentage change exactly: ((new_value - old_value) / old_value) * 100
+    6. Format numbers with thousand separators for better readability
     
-    5. Format numbers with thousand separators for better readability
-    
-    6. Double-check all calculations before providing the final answer
+    7. If a question can't be answered with the provided data, explicitly state that the data is insufficient
     
     """
     
