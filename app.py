@@ -393,6 +393,14 @@ def simple_finance_chat():
             
             Convert the following financial question into a structured JSON query object, that will contain arguments for SQL like operational query_data().
             
+            ## Question Simplification Process
+            First, if the question is a temporal question (includes words like "როდის", "რომელ", etc.), mentally reformat it to a form that will require same grouping and aggregation procedures.
+    
+            For example:
+            - "მითხარი რომელ კვარტალში იყო ჯამური შემოსავალი საქონლის მიწოდებიდან ყველაზე მეტი?" 
+            - Can be processed as: "მითხარი ჯამური შემოსავალი საქონლის მიწოდებიდან კვარტლურად?"
+            
+            
             ## Data Overview
             {json.dumps(data_context, indent=2)}
             
