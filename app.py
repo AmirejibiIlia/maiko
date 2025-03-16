@@ -168,16 +168,28 @@ def interpret_results(df, question):
     Keep your answer brief and to the point, focusing only on what was asked in the original question!
 
     Rules for answering:
-        1. First verify the values in the data frame for the specific periods being compared.
-        2. Carefully determine if comparing periods shows an increase or decrease by directly subtracting old_value from new_value.
-        3. If the result is negative, report a decrease; if positive, report an increase.
-        4. Calculate percentage change as: ((new_value - old_value) / old_value) * 100
-        5. Always include both the absolute change value and the percentage change.
-        6. Format numbers with thousand separators for better readability.
-        7. For questions about changes:
-            - For "გაიზარდა" (increased), if data shows a decrease, correct the interpretation and report the decrease instead.
-            - For "შემცირდა" (decreased), if data shows an increase, correct the interpretation and report the increase instead.
-        8. Double-check all calculations before providing the final answer.
+    1. For questions about largest increase/decrease or growth:
+       - Calculate the change between each consecutive period (e.g., Q1→Q2, Q2→Q3, Q3→Q4)
+       - For each period, subtract previous period value from current period value
+       - Calculate percentage change for each period
+       - Identify which period had the largest positive change (for increase) or negative change (for decrease)
+       - The period with the largest change is the answer, not the period with the highest absolute value
+    
+    2. Always specify the time periods being compared (e.g., "Q2 compared to Q1") and include:
+       - The value before the change
+       - The value after the change
+       - The absolute change amount
+       - The percentage change
+    
+    3. Carefully determine if data shows an increase or decrease:
+       - If new_value > old_value, it's an increase
+       - If new_value < old_value, it's a decrease
+    
+    4. Calculate percentage change exactly: ((new_value - old_value) / old_value) * 100
+    
+    5. Format numbers with thousand separators for better readability
+    
+    6. Double-check all calculations before providing the final answer
     
     """
     
