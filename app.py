@@ -465,6 +465,7 @@ def simple_finance_chat():
             - The "where" should NEVER be empty when the question clearly specifies filtering criteria.
             - Especially, ALWAYS include a "where" if question refers to filtering metrics or clients, match to those provided in "metrics_list" or "client_list" - If multiple matches, include as many as relevants.
             - IMPORTANT: Do not translate metrics or client names between Georgian and English - use the exact strings from metrics_list or client_list
+            - CRITICAL: When filtering client look for most exact match from unique_clients, top 1.
             
             3. **"group_by"**: List of columns to group by - Optional
             - Only group in case question asks grouping, based on data structure.
@@ -518,6 +519,7 @@ def simple_finance_chat():
             - Dates should be formatted as "YYYY-MM-DD"
             - When the question is vague or doesn't specify filters, use the context from Data Overview to provide sensible defaults
             - Match metrics and client names exactly as they appear in the metrics_list and client_list from the data context
+            - CRITICAL: When filtering client look for most exact match from unique_clients, top 1.
 
 
             VERY IMPORTANT: Return only a valid JSON object without any markdown formatting, comments, or explanations.
