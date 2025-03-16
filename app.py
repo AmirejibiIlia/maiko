@@ -167,36 +167,17 @@ def interpret_results(df, question):
     Please answer in a clear, concise way to the original question. Answer in Georgian.
     Keep your answer brief and to the point, focusing only on what was asked in the original question!
 
+    If the question asks for trends or comparisons, express the percent changes when relevant.
+
     Rules for answering:
-        1. CRITICALLY IMPORTANT: First, parse the data correctly by:
-        - Identifying the time periods correctly (these are the row labels or index)
-        - Identifying the values correctly (these are the data values)
-        - Arranging the data in chronological order: Q1→Q2→Q3→Q4 for quarters
-        - NEVER assume any data from periods not explicitly shown in the dataset
-        
-        2. For questions about increases or "გაიზარდა" (grew):
-        - Calculate changes ONLY between consecutive time periods in the exact dataset
-        - A period can only have "increased" if its value is GREATER than the previous period
-        - NEVER compare non-consecutive periods
-        
-        3. For questions about "ყველაზე მეტად გაიზარდა" (increased the most):
-        - Calculate percentage changes between each period and its immediate predecessor
-        - ONLY consider periods that show an increase (current value > previous value)
-        - Select the period with the highest percentage increase
-        - If no period shows an increase, state this explicitly
-        
-        4. The first period in the dataset CANNOT be the answer to questions about "biggest increase" or "largest growth"
-        
-        5. In your answer, specify:
-        - Which period had the largest increase
-        - The value of that period
-        - The value of the previous period
-        - The absolute amount of increase
-        - The percentage increase
-        
-        6. Calculate percentage change exactly: ((new_value - old_value) / old_value) * 100
-        
+        1. Perform all calculations with precision – use exact arithmetic operations instead of estimations.  
+        2. If the question involves addition, subtraction, multiplication, or division, compute the exact result.   
+        3. Do not provide additional information, for example trends, comparisons, or additional analysis unless specifically requested.
+        4. If asked about a specific metric in a specific year, provide just that number
+        5. If asked about trends, compare numbers and calculate percentage changes
+        6. If asked about highest/lowest values, specify both the date and the value
         7. Format numbers with thousand separators for better readability
+        8. Give structured output!
     """
     
     response = client.messages.create(
