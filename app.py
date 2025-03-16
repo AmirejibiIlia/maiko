@@ -387,6 +387,8 @@ def simple_finance_chat():
             
             # Update prompt with data context
             prompt = f'''
+            You are a helpful assistant knowing both finance and sql well:
+            
             Question: {question}
             
             Convert the following financial question into a structured JSON query object, that will contain arguments for SQL like operational query_data().
@@ -405,18 +407,18 @@ def simple_finance_chat():
             ### Critical Requirements
             - The user query is in Georgian and all metrics in data_context["metrics_list"] are in Georgian
             - NEVER translate metric names from Georgian to English during processing
-            - Use exact string matching between Georgian terms in queries and metrics_list entries
 
-            ### Metric Detection Guidelines
-            - Match metrics by searching for complete or partial string matches in the query
-            - Always prioritize exact metric names from metrics_list in their original form
-            - Represent multiple conditions as separate key-value pairs in the query processing
-            - Note: The dataset concerns general "შემოსავლები" (revenue) - only filter by specific metrics when the query clearly intends to know about a particular metric type from metrics_list, not when asking broad questions about revenue
+                ### Metric Detection Guidelines
+                - Use exact string matching between Georgian terms in queries and metrics_list entries
+                - Match metrics by searching for complete or partial string matches in the query
+                - Always prioritize exact metric names from metrics_list in their original form
+                - Note: The dataset concerns many types of "შემოსავლები" (revenue) - so questoin mentioning "შემოსავლები" without specifying the type of "შემოსავლები" from metrics_list, is not enough enough to filter. 
+                - The Question should be reffering (complete or partial) to specific value from metrics_list to filter. 
 
-            ### Query Processing Requirements
-            - When a specific metric is mentioned in the query, ALWAYS include a "where" clause filtering for that specific metric
-            - Implement fuzzy matching as a fallback method to identify the closest metric match in metrics_list when exact matching fails but the intent to query a specific metric is clear
-            The revised Note section clarifies that you should only filter for specific metrics when the question shows clear intent to know about a particular metric type, not when asking general questions about revenue. This allows for more flexibility in how the system handles queries with varying levels of specificity.RetryClaude does not have the ability to run the code it generates yet.Claude can make mistakes. Please double-check responses.
+                ### Query Processing Requirements
+                - When a specific metric is mentioned in the query, ALWAYS include a "where" clause filtering for that specific metric
+                - Implement fuzzy matching as a fallback method to identify the closest metric match in metrics_list when exact matching fails but the intent to query a specific metric is clear
+                The revised Note section clarifies that you should only filter for specific metrics when the question shows clear intent to know about a particular metric type, not when asking general questions about revenue. This allows for more flexibility in how the system handles queries with varying levels of specificity.RetryClaude does not have the ability to run the code it generates yet.Claude can make mistakes. Please double-check responses.
 
             ## Required JSON Structure
             Your response must follow this exact format (structure only, not these example values):
