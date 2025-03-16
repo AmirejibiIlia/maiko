@@ -1,3 +1,17 @@
+    # """
+    # Here is version that works best 2025-03-16. 
+    # it has problem with percentage changes, but works fine for rest of the tasks. 
+    # can't handle multiple where filtering. 
+    
+    # Main things that I should upgrade is: 
+    # 1. to make it handle multiple filtering, 
+    # 2. to add company column, 
+    # 3. and make it capable of handling questions about changes
+    
+    # This was commited as "Sql-engine V113"
+
+    # """
+
 import pandas as pd
 import streamlit as st
 import anthropic

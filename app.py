@@ -72,7 +72,7 @@ def group_and_aggregate(data: pd.DataFrame, group_by: list, aggregations: dict) 
                 data_copy['week'] = data_copy['date'].dt.isocalendar().week
                 processed_group_by.append('week')
             else:
-                # Regular column
+                # Regular column (metrics, client, or others)
                 processed_group_by.append(group_col)
         
         # Perform grouping with processed columns
@@ -80,12 +80,6 @@ def group_and_aggregate(data: pd.DataFrame, group_by: list, aggregations: dict) 
 
     # Rename columns to match SQL-style SELECT aliases
     new_columns = []
-    
-    # for col in data.columns:
-    #     if isinstance(col, tuple):  # Multi-index columns from aggregation
-    #         new_columns.append(f"{col[0]}_{col[1]}")  # Example: 'Sales_sum'
-    #     else:
-    #         new_columns.append(col)  # Keep original column name
     
     for col in data.columns:
         if isinstance(col, tuple):  # Multi-index columns from aggregation
@@ -321,7 +315,7 @@ def simple_finance_chat():
     
     if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
-        required_columns = {"date", "metrics", "value"}
+        required_columns = {"date", "metrics", "value", "client"}  # Added "client" to required columns
         
         if not required_columns.issubset(df.columns):
             st.error(f"Your file must contain the following columns: {', '.join(required_columns)}")
@@ -340,6 +334,11 @@ def simple_finance_chat():
             st.write(f"### Available Metrics ({len(unique_metrics)})")
             st.write(", ".join(unique_metrics))
             
+            # Display unique clients
+            unique_clients = df['client'].unique()
+            st.write(f"### Available Clients ({len(unique_clients)})")
+            st.write(", ".join(unique_clients))
+            
             # Display time range
             min_date = df['date'].min()
             max_date = df['date'].max()
@@ -348,7 +347,11 @@ def simple_finance_chat():
             # Display basic statistics
             st.write("### Value Statistics")
             st.dataframe(df.groupby('metrics')['value'].agg(['sum', 'mean', 'count']))
-        
+            
+            # Display client statistics
+            st.write("### Client Statistics")
+            st.dataframe(df.groupby('client')['value'].agg(['sum', 'mean', 'count']))
+                                         
         # Convert non-serializable types to strings
         min_date_str = min_date.strftime('%Y-%m-%d') if hasattr(min_date, 'strftime') else str(min_date)
         max_date_str = max_date.strftime('%Y-%m-%d') if hasattr(max_date, 'strftime') else str(max_date)
@@ -368,6 +371,7 @@ def simple_finance_chat():
         # Create data context for Claude
         data_context = {
             "metrics_list": unique_metrics.tolist(),
+            "client_list": unique_clients.tolist(),  # Added client list to context
             "date_range": {
                 "min": min_date_str,
                 "max": max_date_str
@@ -405,6 +409,7 @@ def simple_finance_chat():
             
             ## Available Data Structure
             The dataframe contains financial data with these key columns:
+            - `client`: Client or company name (added new column)
             - `metrics`: Various types of income categories denominated in Georgian Language
             - `date`: Date of income (daily granularity)
             - `value`: Numerical amount of income
@@ -412,23 +417,23 @@ def simple_finance_chat():
             ## Georgian Language Handling Instructions     
             
             ### Critical Requirements
-            - The user query is in Georgian and all metrics in data_context["metrics_list"] are in Georgian
-            - NEVER translate metric names from Georgian to English during processing
+            - The user query is in Georgian and all metrics and client names in data_context are in Georgian
+            - NEVER translate metric names or client names from Georgian to English during processing
 
-                ### Metric Detection Guidelines
-                - Use exact string matching between Georgian terms in queries and metrics_list entries
-                - Match metrics by searching for complete or partial string matches in the query
-                - Always prioritize exact metric names from metrics_list in their original form
-                - Note: The dataset concerns many types of "შემოსავლები" (revenue) - so questoin mentioning "შემოსავლები" without specifying the type of "შემოსავლები" from metrics_list, is not enough enough to filter. 
-                - The Question should be reffering (complete or partial) to specific value from metrics_list to filter. 
+                ### Metric and Client Detection Guidelines
+                - Use exact string matching between Georgian terms in queries and metrics_list/client_list entries
+                - Match metrics/clients by searching for complete or partial string matches in the query
+                - Always prioritize exact metric/client names from their respective lists in their original form
+                - Note: The dataset concerns many types of "შემოსავლები" (revenue) - so a question mentioning "შემოსავლები" without specifying the type of "შემოსავლები" from metrics_list, is not enough enough to filter. 
+                - The Question should be referring (complete or partial) to specific value from metrics_list to filter.
+                - Similarly, if a client name is mentioned, it should be matched against the client_list.
 
                 ### Query Processing Requirements
-                - When a specific metric is mentioned in the query, ALWAYS include a "where" clause filtering for that specific metric
-                - Implement fuzzy matching as a fallback method to identify the closest metric match in metrics_list when exact matching fails but the intent to query a specific metric is clear
-                The revised Note section clarifies that you should only filter for specific metrics when the question shows clear intent to know about a particular metric type, not when asking general questions about revenue. This allows for more flexibility in how the system handles queries with varying levels of specificity.RetryClaude does not have the ability to run the code it generates yet.Claude can make mistakes. Please double-check responses.
-                - Time-based questions (containing words like "როდის") still require metric filtering when specific metrics are mentioned
+                - When a specific metric or client is mentioned in the query, ALWAYS include a "where" clause filtering for that specific metric/client
+                - Implement fuzzy matching as a fallback method to identify the closest metric/client match in metrics_list/client_list when exact matching fails but the intent to query a specific metric/client is clear
+                - Time-based questions (containing words like "როდის") still require metric/client filtering when specific metrics/clients are mentioned
                 - Questions asking for superlatives (like "ყველაზე მეტი" or "ყველაზე დაბალი") should:
-                    1. Filter for the specified metric
+                    1. Filter for the specified metric/client
                     2. Include appropriate "order_by" clauses (descending for "მეტი"/highest, ascending for "დაბალი"/lowest)
                     3. Limit results if appropriate
 
@@ -455,14 +460,15 @@ def simple_finance_chat():
             - Values are nested dictionaries with operator-value pairs
             - Operators include: "=", ">", "<", ">=", "<=", "!="
             - Example: `{{"metrics": {{"=": "income from production"}}}}` filters for rows where metrics equals "income from production"
+            - Example: `{{"client": {{"=": "შპს მაიჯიპიეს 205216176"}}}}` filters for rows where client equals "შპს მაიჯიპიეს 205216176"
             - Multiple conditions can be specified as separate key-value pairs
             - The "where" should NEVER be empty when the question clearly specifies filtering criteria.
-            - Especially, ALWAYS include a "where" if question refers to filtering metrics, match to those of provided into "metrics_list" - If multiple matches, include as many as relevants.
-            - IMPORTANT: Do not translate metrics between Georgian and English - use the exact strings from metrics_list
+            - Especially, ALWAYS include a "where" if question refers to filtering metrics or clients, match to those provided in "metrics_list" or "client_list" - If multiple matches, include as many as relevants.
+            - IMPORTANT: Do not translate metrics or client names between Georgian and English - use the exact strings from metrics_list or client_list
             
             3. **"group_by"**: List of columns to group by - Optional
             - Only group in case question asks grouping, based on data structure.
-            - Example of standard groupings: `["date"]`, `["metrics"]`, or `["date", "metrics"]`
+            - Example of standard groupings: `["date"]`, `["metrics"]`, `["client"]`, or combinations like `["date", "metrics"]`, `["client", "metrics"]`
             - Example of time-based groupings: `["quarter"]`, `["month"]`, `["year_only"]`, `["week"]`
             - For time period groupings:
                 - When user asks for quarterly data, use EXACTLY `"quarter"` as a string in group_by, NOT SQL functions
@@ -473,12 +479,12 @@ def simple_finance_chat():
                     - Example: `"group_by": ["year_only"]`
                 - When user asks for weekly data, use EXACTLY `"week"` as a string in group_by
                     - Example: `"group_by": ["week"]`
-            - For combining time periods with other columns (e.g., "monthly income by metrics"):
+            - For combining time periods with other columns (e.g., "monthly income by metrics" or "client income by month"):
                 - Include both the time period and the column name in the group_by list
                 - Example: `"group_by": ["month", "metrics"]` for monthly data by metrics
+                - Example: `"group_by": ["month", "client"]` for monthly data by client
                 - Always put time period first, then other grouping columns
             - DO NOT use SQL functions like date_trunc() or EXTRACT()
-            
             
             4. **"aggregations"**: Dictionary defining aggregation operations - Optional
             - Key: Column to aggregate (typically `"value"`)
@@ -500,8 +506,8 @@ def simple_finance_chat():
 
             ## Implementation Rules
             - Include any of above Optional components if and only if asked.
-            - Always include `"where"` when question mentions or refers to the specific metrics's values based on data overview or time periods
-            - Use appropriate `"group_by"` based on the question's focus (by date, by metric type, etc.)
+            - Always include `"where"` when question mentions or refers to the specific metrics or client names based on data overview or time periods
+            - Use appropriate `"group_by"` based on the question's focus (by date, by metric type, by client, etc.)
             - For time period groupings:
               - When user asks for quarterly data, use `"quarter"` in group_by
               - When user asks for monthly data, use `"month"` in group_by
@@ -511,7 +517,7 @@ def simple_finance_chat():
             - Include `"order_by"` !only! when question mentions sorting or ranking (e.g., "highest", "lowest")
             - Dates should be formatted as "YYYY-MM-DD"
             - When the question is vague or doesn't specify filters, use the context from Data Overview to provide sensible defaults
-            - Match metrics names exactly as they appear in the metrics_list from the data context
+            - Match metrics and client names exactly as they appear in the metrics_list and client_list from the data context
 
 
             VERY IMPORTANT: Return only a valid JSON object without any markdown formatting, comments, or explanations.
@@ -546,9 +552,6 @@ def simple_finance_chat():
                 if "order_by" in query_json and query_json["order_by"]:
                     query_json["order_by"] = [[item[0], item[1]] if isinstance(item, tuple) else item for item in query_json["order_by"]]
                 
-                # st.write("### Your Question:")
-                # st.write(question)
-                
                 st.write("### Generated JSON Query:")
                 st.json(query_json)
                 
@@ -557,12 +560,6 @@ def simple_finance_chat():
                 st.write("### Query Result:")
                 st.dataframe(result_df)
                 
-                # # New section: Interpret results using Claude
-                # interpretation = interpret_results(result_df, question)
-                
-                # st.write("### Interpretation:")
-                # st.write(interpretation)
-
                 # New section: Interpret results using Claude
                 interpretation_section = st.container()
                 with interpretation_section:
