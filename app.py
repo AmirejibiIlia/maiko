@@ -230,28 +230,22 @@ def log_question_and_rating_to_s3(question, rating=None, uploaded_file_name=None
         bucket_name = st.secrets["aws"]["bucket_name"]
         file_key = "question_logs.csv"
         
-        # Prepare log entry - ensure question is properly encoded
-        # Include rating if provided
-        if rating is not None:
-            log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question},{rating}\n"
-        else:
-            log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question},\n"
-        
+        # Check if file exists in S3
         try:
-            # Try to get the existing content
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             existing_content = response['Body'].read().decode('utf-8')
+            file_exists = True
+        except:
+            file_exists = False
             
-            # Check if header needs updating
-            if "rating" not in existing_content.split('\n')[0]:
-                # Update header to include rating column
-                header, *rest = existing_content.split('\n')
-                header += ",rating"
-                updated_content = header + '\n' + '\n'.join(rest) + log_entry
-            else:
-                updated_content = existing_content + log_entry
-        except Exception as e:
-            # Create new file with header if it doesn't exist
+        # Prepare log entry
+        log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question},{rating or ''}\n"
+        
+        if file_exists:
+            # Append to existing file
+            updated_content = existing_content + log_entry
+        else:
+            # Create new file with header
             updated_content = "timestamp,file_name,question,rating\n" + log_entry
         
         # Upload to S3 with explicit UTF-8 encoding
@@ -265,7 +259,7 @@ def log_question_and_rating_to_s3(question, rating=None, uploaded_file_name=None
     except Exception as e:
         # Print error but don't disrupt user experience
         print(f"Failed to log question and rating: {str(e)}")
-        
+                
 def set_background_from_s3():
     """
     Function to set a background image from S3 for the Streamlit app
