@@ -214,13 +214,13 @@ def load_excel_from_s3():
 
 def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name=None, question_id=None):
     """
-    Function to log questions and ratings to S3 with proper encoding for Georgian characters
+    Efficiently logs questions and ratings to S3 with proper encoding for Georgian characters
     """
     try:
-        # Get timestamp
+        # Create S3 client and set up constants
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Create S3 client
+        bucket_name = st.secrets["aws"]["bucket_name"]
+        file_key = "question_logs.csv"
         s3_client = boto3.client(
             's3',
             aws_access_key_id=st.secrets["aws"]["access_key_id"],
@@ -228,52 +228,18 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
             region_name=st.secrets["aws"]["region"]
         )
         
-        bucket_name = st.secrets["aws"]["bucket_name"]
-        file_key = "question_logs.csv"
-        
-        # Debug prints for input parameters
-        print(f"DEBUG: Starting log function with params:")
-        print(f"DEBUG: question_id={question_id}")
-        print(f"DEBUG: rating={rating}")
-        print(f"DEBUG: question={question}")
-        print(f"DEBUG: uploaded_file_name={uploaded_file_name}")
-        
-        # Check if file exists in S3
+        # Load existing log data or create new DataFrame
         try:
-            print(f"DEBUG: Attempting to get existing log file from S3")
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-            existing_content = response['Body'].read().decode('utf-8')
-            print(f"DEBUG: Successfully retrieved log file from S3, size: {len(existing_content)} bytes")
-            
-            # Parse existing content into a DataFrame
-            import io
-            import pandas as pd
-            df = pd.read_csv(io.StringIO(existing_content))
-            
-            # Display structure for debugging
-            print(f"DEBUG: Current log columns: {df.columns.tolist()}")
-            print(f"DEBUG: DataFrame shape: {df.shape}")
-            print(f"DEBUG: Sample row: {df.iloc[0].to_dict() if len(df) > 0 else 'No rows'}")
-            
-        except s3_client.exceptions.NoSuchKey as e:
-            print(f"DEBUG: Log file doesn't exist yet, creating new one: {e}")
-            # Create new DataFrame with consistent column order
+            df = pd.read_csv(io.StringIO(response['Body'].read().decode('utf-8')))
+        except Exception:
+            # Create new DataFrame if file doesn't exist or other error occurs
             df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating", "question_id"])
-            print(f"DEBUG: Created new DataFrame with columns: {df.columns.tolist()}")
         
-        except Exception as e:
-            print(f"DEBUG: Unexpected error reading log file: {type(e).__name__}: {e}")
-            # Create new DataFrame with consistent column order
-            df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating", "question_id"])
-            print(f"DEBUG: Created new DataFrame with columns: {df.columns.tolist()}")
-        
+        # Handle new question or rating update
         if question_id is None and question is not None:
             # New question entry
-            import uuid
             question_id = str(uuid.uuid4())
-            print(f"DEBUG: Generated new question_id: {question_id}")
-            
-            # Add new row to DataFrame
             new_row = {
                 "timestamp": timestamp,
                 "file_name": uploaded_file_name or 'None',
@@ -281,33 +247,15 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
                 "rating": rating if rating is not None else "",
                 "question_id": question_id
             }
-            
-            print(f"DEBUG: Adding new row: {new_row}")
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-            print(f"DEBUG: DataFrame after adding row, shape: {df.shape}")
             
         elif question_id is not None and rating is not None:
             # Update existing entry with rating
-            print(f"DEBUG: Updating rating to {rating} for question_id: {question_id}")
-            
-            # Add more verbose debugging to find out what's happening
-            print(f"DEBUG: DataFrame contains question_id column: {'question_id' in df.columns}")
-            if "question_id" in df.columns:
-                if not df["question_id"].astype(str).eq(str(question_id)).any():
-                    print(f"DEBUG: question_id {question_id} not found in DataFrame")
-                    print(f"DEBUG: All question_ids in DataFrame: {df['question_id'].tolist()}")
-                else:
-                    print(f"DEBUG: Found question_id {question_id} in DataFrame")
-                
             if "question_id" in df.columns and df["question_id"].astype(str).eq(str(question_id)).any():
-                # Find and update the matching row
                 idx = df.index[df["question_id"].astype(str) == str(question_id)].tolist()[0]
-                old_rating = df.at[idx, "rating"]
                 df.at[idx, "rating"] = rating
-                print(f"DEBUG: Updated rating from {old_rating} to {rating} at index {idx}")
             else:
-                print(f"DEBUG: Warning - question_id {question_id} not found in logs, creating new entry")
-                # If the question_id isn't found, add a new row as a fallback
+                # Create a new entry if question_id not found
                 new_row = {
                     "timestamp": timestamp,
                     "file_name": uploaded_file_name or 'None',
@@ -315,38 +263,27 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
                     "rating": rating,
                     "question_id": question_id
                 }
-                print(f"DEBUG: Adding fallback row: {new_row}")
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                print(f"DEBUG: DataFrame after adding fallback row, shape: {df.shape}")
-        
-        # Convert back to CSV
-        csv_buffer = io.StringIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_content = csv_buffer.getvalue()
-        
-        print(f"DEBUG: Preparing to upload CSV to S3, size: {len(csv_content)} bytes")
-        print(f"DEBUG: First 100 characters of CSV: {csv_content[:100]}...")
         
         # Upload to S3 with explicit UTF-8 encoding
-        try:
-            s3_client.put_object(
-                Bucket=bucket_name,
-                Key=file_key,
-                Body=csv_content.encode('utf-8'),
-                ContentType='text/csv; charset=utf-8'
-            )
-            print(f"DEBUG: Successfully uploaded log to S3")
-        except Exception as e:
-            print(f"DEBUG: Error uploading to S3: {type(e).__name__}: {e}")
-            
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=file_key,
+            Body=csv_buffer.getvalue().encode('utf-8'),
+            ContentType='text/csv; charset=utf-8'
+        )
+        
         return question_id
     
     except Exception as e:
-        # Print error but don't disrupt user experience
-        print(f"DEBUG: CRITICAL ERROR in logging function: {type(e).__name__}: {e}")
+        # Simplified error handling
+        print(f"Error in logging function: {type(e).__name__}: {e}")
         import traceback
-        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        print(f"Traceback: {traceback.format_exc()}")
         return question_id
+
     
                     
 def set_background_from_s3():
