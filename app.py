@@ -614,7 +614,8 @@ def simple_finance_chat():
                         
                     st.write("### Interpretation:")                
                     # st.markdown(f"<div style='background-color: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
-                
+                    st.markdown(f"<div style='background-color: transparent; padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
+                    
             except Exception as e:
                 st.error(f"Error: {str(e)}")
                 st.error(f"Response content: {response.content[0].text if 'response' in locals() else 'No response'}")
