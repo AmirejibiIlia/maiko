@@ -314,29 +314,12 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
         )
         
         print(f"Successfully saved log to S3. Returning question_id: {question_id}")
-        
-        if rating is not None:
-            print(f"Successfully logged rating {rating} for question_id {question_id}")
-            # Check if the entry was updated correctly
-            try:
-                response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-                content = response['Body'].read().decode('utf-8')
-                verify_df = pd.read_csv(io.StringIO(content))
-                if question_id in verify_df["question_id"].values:
-                    idx = verify_df.index[verify_df["question_id"] == question_id].tolist()[0]
-                    print(f"Verification: question_id {question_id} has rating {verify_df.at[idx, 'rating']}")
-                else:
-                    print(f"Verification failed: question_id {question_id} not found after update")
-            except Exception as e:
-                print(f"Verification error: {e}")
-                
         return question_id
     
     except Exception as e:
         # Print error but don't disrupt user experience
         print(f"Failed to log question and rating: {str(e)}")
-        return question_id
-                
+        return question_id                
                 
 def set_background_from_s3():
     """
@@ -525,7 +508,6 @@ def simple_finance_chat():
             question_id = log_question_and_rating_to_s3(question=question, uploaded_file_name="TestDoc")
             st.session_state.current_question_id = question_id
             print(f"Set current_question_id in session state: {question_id}")
-
             
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             
@@ -713,55 +695,53 @@ def simple_finance_chat():
                     st.markdown(f"<div style='background-color: transparent; padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
                     
                     # Add rating system here
-                # Add rating system here
-                st.write("### How would you rate this answer?")
-
-                # Define rating submission function outside the form
-                def submit_rating(rating_value):
-                    # Store the current question ID before any state changes
-                    current_question_id = st.session_state.get("current_question_id")
-                    print(f"Submitting rating {rating_value} for question_id: {current_question_id}")
+                    st.write("### How would you rate this answer?")
                     
-                    # Update session state
-                    st.session_state.rating = rating_value
-                    st.session_state.has_rated = True
+                    # Create columns for the rating system to make it look nicer
+                    col1, col2, col3, col4, col5, col6 = st.columns(6)
                     
-                    # Log the rating
-                    if current_question_id:
-                        log_question_and_rating_to_s3(question_id=current_question_id, rating=rating_value)
-                        print(f"Logged rating {rating_value} for question_id {current_question_id}")
-                    else:
-                        print("Warning: No question_id found in session state")
-                        # Fallback to old method
-                        log_question_and_rating_to_s3(question=st.session_state.current_question, rating=rating_value, uploaded_file_name="TestDoc")
-                    
-                    st.success(f"Rating of {rating_value}/5 submitted. Thank you for your feedback!")
-
-                # Use a form to prevent full page reloads
-                if not st.session_state.get('has_rated', False):
-                    with st.form(key="rating_form"):
-                        rating_col1, rating_col2, rating_col3, rating_col4, rating_col5 = st.columns(5)
-                        with rating_col1:
-                            rating_1 = st.form_submit_button("1")
-                        with rating_col2:
-                            rating_2 = st.form_submit_button("2") 
-                        with rating_col3:
-                            rating_3 = st.form_submit_button("3")
-                        with rating_col4:
-                            rating_4 = st.form_submit_button("4")
-                        with rating_col5:
-                            rating_5 = st.form_submit_button("5")
+                    # Define rating submission function
+                    def submit_rating(rating_value):
+                        print(f"Rating submitted: {rating_value}")
+                        st.session_state.rating = rating_value
+                        st.session_state.has_rated = True
                         
-                        # Check which button was pressed
-                        if rating_1: submit_rating(1)
-                        elif rating_2: submit_rating(2)
-                        elif rating_3: submit_rating(3)
-                        elif rating_4: submit_rating(4)
-                        elif rating_5: submit_rating(5)
-                else:
+                        # Get the current question ID from session state
+                        question_id = st.session_state.get("current_question_id")
+                        print(f"Retrieved question_id from session state: {question_id}")
+                        
+                        # Log the rating to S3
+                        if question_id:
+                            log_question_and_rating_to_s3(question_id=question_id, rating=rating_value)
+                            print(f"Logged rating {rating_value} for question_id {question_id}")
+                        else:
+                            print("Warning: No question_id found in session state")
+                            # Fallback to old method
+                            log_question_and_rating_to_s3(question=st.session_state.current_question, rating=rating_value, uploaded_file_name="TestDoc")
+                        
+                        st.success(f"Rating of {rating_value}/5 submitted. Thank you for your feedback!")
+                        
+                    # Rating buttons
+                    with col1:
+                        if st.button("1", key="rate1", disabled=st.session_state.has_rated):
+                            submit_rating(1)
+                    with col2:
+                        if st.button("2", key="rate2", disabled=st.session_state.has_rated):
+                            submit_rating(2)
+                    with col3:
+                        if st.button("3", key="rate3", disabled=st.session_state.has_rated):
+                            submit_rating(3)
+                    with col4:
+                        if st.button("4", key="rate4", disabled=st.session_state.has_rated):
+                            submit_rating(4)
+                    with col5:
+                        if st.button("5", key="rate5", disabled=st.session_state.has_rated):
+                            submit_rating(5)
+                    
                     # Show current rating if it exists
-                    rating_value = st.session_state.get('rating', 0)
-                    st.write(f"You rated this answer: {rating_value}/5")
+                    if st.session_state.get('has_rated', False):
+                        rating_value = st.session_state.get('rating', 0)
+                        st.write(f"You rated this answer: {rating_value}/5")
                     
             except Exception as e:
                 st.error(f"Error: {str(e)}")
