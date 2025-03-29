@@ -475,6 +475,7 @@ def simple_finance_chat():
             st.session_state.current_question_id = question_id
             print(f"Set current_question_id in session state: {question_id}")
             
+            
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             
             # Update prompt with data context
@@ -667,6 +668,25 @@ def simple_finance_chat():
                     col1, col2, col3, col4, col5, col6 = st.columns(6)
 
                     # Define rating submission function with explicit form submission
+                    # def submit_rating(rating_value):
+                    #     rating_str = str(rating_value)  # Ensure rating is a string
+                    #     st.session_state.rating = rating_str
+                    #     st.session_state.has_rated = True
+                        
+                    #     # Get the current question ID from session state
+                    #     question_id = st.session_state.get("current_question_id")
+                        
+                    #     # Log the rating to S3
+                    #     if question_id:
+                    #         log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
+                    #     else:
+                    #         # Fallback to old method
+                    #         log_question_and_rating_to_s3(question=st.session_state.current_question, 
+                    #                                     rating=rating_str, 
+                    #                                     uploaded_file_name="TestDoc")
+                        
+                    #     # No need for success message here as page will reload
+                    
                     def submit_rating(rating_value):
                         rating_str = str(rating_value)  # Ensure rating is a string
                         st.session_state.rating = rating_str
@@ -678,13 +698,15 @@ def simple_finance_chat():
                         # Log the rating to S3
                         if question_id:
                             log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
+                            print(f"Logged rating {rating_str} for question ID: {question_id}")
                         else:
                             # Fallback to old method
-                            log_question_and_rating_to_s3(question=st.session_state.current_question, 
+                            print("Warning: No question_id found in session state, using fallback method")
+                            question_id = log_question_and_rating_to_s3(question=st.session_state.current_question, 
                                                         rating=rating_str, 
                                                         uploaded_file_name="TestDoc")
-                        
-                        # No need for success message here as page will reload
+                            # Store the question_id for future use
+                            st.session_state.current_question_id = question_id
 
                     # Rating buttons - now in a form for explicit submission
                     with st.form(key="rating_form"):
