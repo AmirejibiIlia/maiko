@@ -183,6 +183,34 @@ def interpret_results(df, question):
     
     return response.content[0].text.strip()
 
+def load_excel_from_s3():
+    """
+    Load the FullData.xlsx file from S3 bucket
+    """
+    try:
+        # Create S3 client
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=st.secrets["aws"]["access_key_id"],
+            aws_secret_access_key=st.secrets["aws"]["secret_access_key"],
+            region_name=st.secrets["aws"]["region"]
+        )
+        
+        bucket_name = st.secrets["aws"]["bucket_name"]
+        file_key = "FullData.xlsx"
+        
+        # Get the file from S3
+        response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+        excel_content = response['Body'].read()
+        
+        # Load into pandas DataFrame
+        df = pd.read_excel(io.BytesIO(excel_content))
+        
+        return df
+    except Exception as e:
+        st.error(f"Error loading Excel file from S3: {str(e)}")
+        return None
+
 def log_question_to_s3(question, uploaded_file_name=None):
     """
     Function to log questions to S3 with proper encoding for Georgian characters
@@ -311,7 +339,11 @@ def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
     st.write("ატვირთე ფაილი, დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
     
-    uploaded_file = st.file_uploader("Upload your financial data Excel file", type=["xlsx"])
+    # uploaded_file = st.file_uploader("Upload your financial data Excel file", type=["xlsx"])
+    
+    # Load data from S3 instead of file upload
+    with st.spinner("მონაცემების ჩატვირთვა..."):
+        uploaded_file = load_excel_from_s3()
     
     if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
