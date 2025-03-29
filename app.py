@@ -211,9 +211,9 @@ def load_excel_from_s3():
         st.error(f"Error loading Excel file from S3: {str(e)}")
         return None
 
-def log_question_to_s3(question, uploaded_file_name=None):
+def log_question_and_rating_to_s3(question, rating=None, uploaded_file_name=None):
     """
-    Function to log questions to S3 with proper encoding for Georgian characters
+    Function to log questions and ratings to S3 with proper encoding for Georgian characters
     """
     try:
         # Get timestamp
@@ -231,16 +231,28 @@ def log_question_to_s3(question, uploaded_file_name=None):
         file_key = "question_logs.csv"
         
         # Prepare log entry - ensure question is properly encoded
-        log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question}\n"
+        # Include rating if provided
+        if rating is not None:
+            log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question},{rating}\n"
+        else:
+            log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question},\n"
         
         try:
             # Try to get the existing content
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             existing_content = response['Body'].read().decode('utf-8')
-            updated_content = existing_content + log_entry
+            
+            # Check if header needs updating
+            if "rating" not in existing_content.split('\n')[0]:
+                # Update header to include rating column
+                header, *rest = existing_content.split('\n')
+                header += ",rating"
+                updated_content = header + '\n' + '\n'.join(rest) + log_entry
+            else:
+                updated_content = existing_content + log_entry
         except Exception as e:
             # Create new file with header if it doesn't exist
-            updated_content = "timestamp,file_name,question\n" + log_entry
+            updated_content = "timestamp,file_name,question,rating\n" + log_entry
         
         # Upload to S3 with explicit UTF-8 encoding
         s3_client.put_object(
@@ -252,7 +264,7 @@ def log_question_to_s3(question, uploaded_file_name=None):
     
     except Exception as e:
         # Print error but don't disrupt user experience
-        print(f"Failed to log question: {str(e)}")
+        print(f"Failed to log question and rating: {str(e)}")
         
 def set_background_from_s3():
     """
@@ -338,6 +350,12 @@ def simple_finance_chat():
     
     st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
     st.write("დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
+    
+    # Initialize session state for rating
+    if 'has_rated' not in st.session_state:
+        st.session_state.has_rated = False
+    if 'current_question' not in st.session_state:
+        st.session_state.current_question = ""
     
     # Load data directly from S3 instead of file uploader
     try:
@@ -426,9 +444,13 @@ def simple_finance_chat():
         
         question = st.text_input("Ask your financial question:")
         
-        if question:
-            # Log the question silently to Amazon S3
-            log_question_to_s3(question, "TestDoc")
+        if question and question != st.session_state.current_question:
+            # Reset rating state when a new question is asked
+            st.session_state.has_rated = False
+            st.session_state.current_question = question
+            
+            # Log the question silently to Amazon S3 (without rating initially)
+            log_question_and_rating_to_s3(question, uploaded_file_name="TestDoc")
             
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             
@@ -613,8 +635,43 @@ def simple_finance_chat():
                     interpretation = interpret_results(result_df, question)
                         
                     st.write("### Interpretation:")                
-                    # st.markdown(f"<div style='background-color: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
                     st.markdown(f"<div style='background-color: transparent; padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
+                    
+                    # Add rating system here
+                    st.write("### How would you rate this answer?")
+                    
+                    # Create columns for the rating system to make it look nicer
+                    col1, col2, col3, col4, col5, col6 = st.columns(6)
+                    
+                    # Define rating submission function
+                    def submit_rating(rating_value):
+                        st.session_state.rating = rating_value
+                        st.session_state.has_rated = True
+                        # Log the rating to S3
+                        log_question_and_rating_to_s3(question, rating_value, "TestDoc")
+                        st.success(f"Rating of {rating_value}/5 submitted. Thank you for your feedback!")
+                        
+                    # Rating buttons
+                    with col1:
+                        if st.button("1", key="rate1", disabled=st.session_state.has_rated):
+                            submit_rating(1)
+                    with col2:
+                        if st.button("2", key="rate2", disabled=st.session_state.has_rated):
+                            submit_rating(2)
+                    with col3:
+                        if st.button("3", key="rate3", disabled=st.session_state.has_rated):
+                            submit_rating(3)
+                    with col4:
+                        if st.button("4", key="rate4", disabled=st.session_state.has_rated):
+                            submit_rating(4)
+                    with col5:
+                        if st.button("5", key="rate5", disabled=st.session_state.has_rated):
+                            submit_rating(5)
+                    
+                    # Show current rating if it exists
+                    if st.session_state.get('has_rated', False):
+                        rating_value = st.session_state.get('rating', 0)
+                        st.write(f"You rated this answer: {rating_value}/5")
                     
             except Exception as e:
                 st.error(f"Error: {str(e)}")
