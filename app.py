@@ -231,14 +231,19 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
         bucket_name = st.secrets["aws"]["bucket_name"]
         file_key = "question_logs.csv"
         
-        # Debug print
-        print(f"Logging: question_id={question_id}, rating={rating}, question={question}")
+        # Debug prints for input parameters
+        print(f"DEBUG: Starting log function with params:")
+        print(f"DEBUG: question_id={question_id}")
+        print(f"DEBUG: rating={rating}")
+        print(f"DEBUG: question={question}")
+        print(f"DEBUG: uploaded_file_name={uploaded_file_name}")
         
         # Check if file exists in S3
         try:
+            print(f"DEBUG: Attempting to get existing log file from S3")
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             existing_content = response['Body'].read().decode('utf-8')
-            print("Found existing log file")
+            print(f"DEBUG: Successfully retrieved log file from S3, size: {len(existing_content)} bytes")
             
             # Parse existing content into a DataFrame
             import io
@@ -246,19 +251,27 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
             df = pd.read_csv(io.StringIO(existing_content))
             
             # Display structure for debugging
-            print(f"Current log columns: {df.columns.tolist()}")
-            print(f"Sample row: {df.iloc[0].to_dict() if len(df) > 0 else 'No rows'}")
+            print(f"DEBUG: Current log columns: {df.columns.tolist()}")
+            print(f"DEBUG: DataFrame shape: {df.shape}")
+            print(f"DEBUG: Sample row: {df.iloc[0].to_dict() if len(df) > 0 else 'No rows'}")
             
-        except Exception as e:
-            print(f"No existing log file or error: {e}")
+        except s3_client.exceptions.NoSuchKey as e:
+            print(f"DEBUG: Log file doesn't exist yet, creating new one: {e}")
             # Create new DataFrame with consistent column order
             df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating", "question_id"])
+            print(f"DEBUG: Created new DataFrame with columns: {df.columns.tolist()}")
+        
+        except Exception as e:
+            print(f"DEBUG: Unexpected error reading log file: {type(e).__name__}: {e}")
+            # Create new DataFrame with consistent column order
+            df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating", "question_id"])
+            print(f"DEBUG: Created new DataFrame with columns: {df.columns.tolist()}")
         
         if question_id is None and question is not None:
             # New question entry
             import uuid
             question_id = str(uuid.uuid4())
-            print(f"Generated new question_id: {question_id}")
+            print(f"DEBUG: Generated new question_id: {question_id}")
             
             # Add new row to DataFrame
             new_row = {
@@ -269,27 +282,31 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
                 "question_id": question_id
             }
             
+            print(f"DEBUG: Adding new row: {new_row}")
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-            print(f"Added new row with question_id: {question_id}")
+            print(f"DEBUG: DataFrame after adding row, shape: {df.shape}")
             
         elif question_id is not None and rating is not None:
             # Update existing entry with rating
-            print(f"Updating rating for question_id: {question_id}")
+            print(f"DEBUG: Updating rating to {rating} for question_id: {question_id}")
+            
             # Add more verbose debugging to find out what's happening
-            print(f"DataFrame contains question_id column: {'question_id' in df.columns}")
+            print(f"DEBUG: DataFrame contains question_id column: {'question_id' in df.columns}")
             if "question_id" in df.columns:
-                print(f"All question_ids in DataFrame: {df['question_id'].tolist()}")
-                print(f"Looking for: {question_id}")
-                matches = df["question_id"] == question_id
-                print(f"Matches found: {matches.sum()}")
+                if not df["question_id"].astype(str).eq(str(question_id)).any():
+                    print(f"DEBUG: question_id {question_id} not found in DataFrame")
+                    print(f"DEBUG: All question_ids in DataFrame: {df['question_id'].tolist()}")
+                else:
+                    print(f"DEBUG: Found question_id {question_id} in DataFrame")
                 
-            if "question_id" in df.columns and question_id in df["question_id"].values:
+            if "question_id" in df.columns and df["question_id"].astype(str).eq(str(question_id)).any():
                 # Find and update the matching row
-                idx = df.index[df["question_id"] == question_id].tolist()[0]
+                idx = df.index[df["question_id"].astype(str) == str(question_id)].tolist()[0]
+                old_rating = df.at[idx, "rating"]
                 df.at[idx, "rating"] = rating
-                print(f"Updated rating to {rating} at index {idx}")
+                print(f"DEBUG: Updated rating from {old_rating} to {rating} at index {idx}")
             else:
-                print(f"Warning: question_id {question_id} not found in logs")
+                print(f"DEBUG: Warning - question_id {question_id} not found in logs, creating new entry")
                 # If the question_id isn't found, add a new row as a fallback
                 new_row = {
                     "timestamp": timestamp,
@@ -298,29 +315,40 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
                     "rating": rating,
                     "question_id": question_id
                 }
+                print(f"DEBUG: Adding fallback row: {new_row}")
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                print(f"Added fallback row with question_id: {question_id}")
+                print(f"DEBUG: DataFrame after adding fallback row, shape: {df.shape}")
         
         # Convert back to CSV
         csv_buffer = io.StringIO()
         df.to_csv(csv_buffer, index=False)
+        csv_content = csv_buffer.getvalue()
+        
+        print(f"DEBUG: Preparing to upload CSV to S3, size: {len(csv_content)} bytes")
+        print(f"DEBUG: First 100 characters of CSV: {csv_content[:100]}...")
         
         # Upload to S3 with explicit UTF-8 encoding
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key=file_key,
-            Body=csv_buffer.getvalue().encode('utf-8'),
-            ContentType='text/csv; charset=utf-8'
-        )
-        
-        print(f"Successfully saved log to S3. Returning question_id: {question_id}")
+        try:
+            s3_client.put_object(
+                Bucket=bucket_name,
+                Key=file_key,
+                Body=csv_content.encode('utf-8'),
+                ContentType='text/csv; charset=utf-8'
+            )
+            print(f"DEBUG: Successfully uploaded log to S3")
+        except Exception as e:
+            print(f"DEBUG: Error uploading to S3: {type(e).__name__}: {e}")
+            
         return question_id
     
     except Exception as e:
         # Print error but don't disrupt user experience
-        print(f"Failed to log question and rating: {str(e)}")
-        return question_id                
-                
+        print(f"DEBUG: CRITICAL ERROR in logging function: {type(e).__name__}: {e}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return question_id
+    
+                    
 def set_background_from_s3():
     """
     Function to set a background image from S3 for the Streamlit app
