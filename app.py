@@ -455,8 +455,8 @@ def simple_finance_chat():
             st.session_state.has_rated = False
             st.session_state.current_question = question
             
-            # Log the question silently to Amazon S3 (without rating initially)
-            log_question_and_rating_to_s3(question, uploaded_file_name="TestDoc")
+            # # Log the question silently to Amazon S3 (without rating initially)
+            # log_question_and_rating_to_s3(question, uploaded_file_name="TestDoc")
             
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             
@@ -653,8 +653,9 @@ def simple_finance_chat():
                     def submit_rating(rating_value):
                         st.session_state.rating = rating_value
                         st.session_state.has_rated = True
-                        # Log the rating to S3
-                        log_question_and_rating_to_s3(question, rating_value, "TestDoc")
+                        
+                        # Log the question and rating together only after rating is submitted
+                        log_question_and_rating_to_s3(st.session_state.current_question, rating_value, "TestDoc")
                         st.success(f"Rating of {rating_value}/5 submitted. Thank you for your feedback!")
                         
                     # Rating buttons
