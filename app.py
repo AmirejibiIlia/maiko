@@ -337,20 +337,32 @@ def simple_finance_chat():
     set_background_from_s3()
     
     st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
-    st.write("ატვირთე ფაილი, დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
+    st.write("დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
     
-    # uploaded_file = st.file_uploader("Upload your financial data Excel file", type=["xlsx"])
-    
-    # Load data from S3 instead of file upload
-    with st.spinner("მონაცემების ჩატვირთვა..."):
-        uploaded_file = load_excel_from_s3()
-    
-    if uploaded_file is not None:
-        df = pd.read_excel(uploaded_file)
-        required_columns = {"date", "metrics", "value", "client"}  # Added "client" to required columns
+    # Load data directly from S3 instead of file uploader
+    try:
+        # Create S3 client
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=st.secrets["aws"]["access_key_id"],
+            aws_secret_access_key=st.secrets["aws"]["secret_access_key"],
+            region_name=st.secrets["aws"]["region"]
+        )
+        
+        bucket_name = st.secrets["aws"]["bucket_name"]
+        file_key = "FullData.xlsx"  # Excel file name in S3
+        
+        # Download file from S3 to memory
+        response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+        excel_data = response['Body'].read()
+        
+        # Read Excel file from memory
+        df = pd.read_excel(io.BytesIO(excel_data))
+        
+        required_columns = {"date", "metrics", "value", "client"}
         
         if not required_columns.issubset(df.columns):
-            st.error(f"Your file must contain the following columns: {', '.join(required_columns)}")
+            st.error(f"The data file must contain the following columns: {', '.join(required_columns)}")
             return
         
         df["value"] = pd.to_numeric(df["value"], errors="coerce")
@@ -383,7 +395,7 @@ def simple_finance_chat():
             # Display client statistics
             st.write("### Client Statistics")
             st.dataframe(df.groupby('client')['value'].agg(['sum', 'mean', 'count']))
-                                         
+                                                     
         # Convert non-serializable types to strings
         min_date_str = min_date.strftime('%Y-%m-%d') if hasattr(min_date, 'strftime') else str(min_date)
         max_date_str = max_date.strftime('%Y-%m-%d') if hasattr(max_date, 'strftime') else str(max_date)
