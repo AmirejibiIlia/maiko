@@ -9,6 +9,7 @@ import csv
 import datetime 
 import base64
 import uuid
+from streamlit.components.v1 import html
 
 
 def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
@@ -658,55 +659,70 @@ def simple_finance_chat():
                         
                     st.write("### Interpretation:")                
                     st.markdown(f"<div style='background-color: transparent; padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
-                    
-                    # Add rating system here
+
+                    # In your interpretation section after displaying the result
                     st.write("### How would you rate this answer?")
-                    
-                    # Create columns for the rating system to make it look nicer
+
+                    # Create columns for the rating system
                     col1, col2, col3, col4, col5, col6 = st.columns(6)
-                    
-                    # Define rating submission function
+
+                    # Define rating submission function with explicit form submission
                     def submit_rating(rating_value):
-                        print(f"Rating submitted: {rating_value}")
-                        st.session_state.rating = rating_value
+                        rating_str = str(rating_value)  # Ensure rating is a string
+                        st.session_state.rating = rating_str
                         st.session_state.has_rated = True
                         
                         # Get the current question ID from session state
                         question_id = st.session_state.get("current_question_id")
-                        print(f"Retrieved question_id from session state: {question_id}")
                         
                         # Log the rating to S3
                         if question_id:
-                            log_question_and_rating_to_s3(question_id=question_id, rating=rating_value)
-                            print(f"Logged rating {rating_value} for question_id {question_id}")
+                            log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
                         else:
-                            print("Warning: No question_id found in session state")
                             # Fallback to old method
-                            log_question_and_rating_to_s3(question=st.session_state.current_question, rating=rating_value, uploaded_file_name="TestDoc")
+                            log_question_and_rating_to_s3(question=st.session_state.current_question, 
+                                                        rating=rating_str, 
+                                                        uploaded_file_name="TestDoc")
                         
-                        st.success(f"Rating of {rating_value}/5 submitted. Thank you for your feedback!")
+                        # No need for success message here as page will reload
+
+                    # Rating buttons - now in a form for explicit submission
+                    with st.form(key="rating_form"):
+                        st.write("Select your rating:")
                         
-                    # Rating buttons
-                    with col1:
-                        if st.button("1", key="rate1", disabled=st.session_state.has_rated):
-                            submit_rating(1)
-                    with col2:
-                        if st.button("2", key="rate2", disabled=st.session_state.has_rated):
-                            submit_rating(2)
-                    with col3:
-                        if st.button("3", key="rate3", disabled=st.session_state.has_rated):
-                            submit_rating(3)
-                    with col4:
-                        if st.button("4", key="rate4", disabled=st.session_state.has_rated):
-                            submit_rating(4)
-                    with col5:
-                        if st.button("5", key="rate5", disabled=st.session_state.has_rated):
-                            submit_rating(5)
-                    
+                        # Create a horizontal layout for rating buttons
+                        cols = st.columns(5)
+                        with cols[0]:
+                            rate1 = st.form_submit_button("1", disabled=st.session_state.has_rated)
+                        with cols[1]:
+                            rate2 = st.form_submit_button("2", disabled=st.session_state.has_rated)
+                        with cols[2]:
+                            rate3 = st.form_submit_button("3", disabled=st.session_state.has_rated)
+                        with cols[3]:
+                            rate4 = st.form_submit_button("4", disabled=st.session_state.has_rated)
+                        with cols[4]:
+                            rate5 = st.form_submit_button("5", disabled=st.session_state.has_rated)
+                        
+                        # Custom submission message
+                        st.caption("Click a rating to submit your feedback")
+
+                    # Process button clicks
+                    if rate1:
+                        submit_rating(1)
+                    elif rate2:
+                        submit_rating(2)
+                    elif rate3:
+                        submit_rating(3)
+                    elif rate4:
+                        submit_rating(4)
+                    elif rate5:
+                        submit_rating(5)
+
                     # Show current rating if it exists
                     if st.session_state.get('has_rated', False):
-                        rating_value = st.session_state.get('rating', 0)
-                        st.write(f"You rated this answer: {rating_value}/5")
+                        rating_value = st.session_state.get('rating', '0')
+                        st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
+        
                     
             except Exception as e:
                 st.error(f"Error: {str(e)}")
