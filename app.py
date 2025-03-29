@@ -657,68 +657,107 @@ def simple_finance_chat():
                     result_df = execute_query(query_json)
                     interpretation = interpret_results(result_df, question)
                         
+                    # st.write("### Interpretation:")                
+                    # st.markdown(f"<div style='background-color: transparent; padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
+
+                    # # In your interpretation section after displaying the result
+                    # st.write("### How would you rate this answer?")
+
+                    # # Create columns for the rating system
+                    # col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+                    # # Define rating submission function with explicit form submission
+                    # def submit_rating(rating_value):
+                    #     rating_str = str(rating_value)  # Ensure rating is a string
+                    #     st.session_state.rating = rating_str
+                    #     st.session_state.has_rated = True
+                        
+                    #     # Get the current question ID from session state
+                    #     question_id = st.session_state.get("current_question_id")
+                        
+                    #     # Log the rating to S3
+                    #     if question_id:
+                    #         log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
+                    #     else:
+                    #         # Fallback to old method
+                    #         log_question_and_rating_to_s3(question=st.session_state.current_question, 
+                    #                                     rating=rating_str, 
+                    #                                     uploaded_file_name="TestDoc")
+                        
+                    #     # No need for success message here as page will reload
+
+                    # # Rating buttons - now in a form for explicit submission
+                    # with st.form(key="rating_form"):
+                    #     st.write("Select your rating:")
+                        
+                    #     # Create a horizontal layout for rating buttons
+                    #     cols = st.columns(5)
+                    #     with cols[0]:
+                    #         rate1 = st.form_submit_button("1", disabled=st.session_state.has_rated)
+                    #     with cols[1]:
+                    #         rate2 = st.form_submit_button("2", disabled=st.session_state.has_rated)
+                    #     with cols[2]:
+                    #         rate3 = st.form_submit_button("3", disabled=st.session_state.has_rated)
+                    #     with cols[3]:
+                    #         rate4 = st.form_submit_button("4", disabled=st.session_state.has_rated)
+                    #     with cols[4]:
+                    #         rate5 = st.form_submit_button("5", disabled=st.session_state.has_rated)
+                        
+                    #     # Custom submission message
+                    #     st.caption("Click a rating to submit your feedback")
+
+                    # # Process button clicks
+                    # if rate1:
+                    #     submit_rating(1)
+                    # elif rate2:
+                    #     submit_rating(2)
+                    # elif rate3:
+                    #     submit_rating(3)
+                    # elif rate4:
+                    #     submit_rating(4)
+                    # elif rate5:
+                    #     submit_rating(5)
+
+                    # # Show current rating if it exists
+                    # if st.session_state.get('has_rated', False):
+                    #     rating_value = st.session_state.get('rating', '0')
+                    #     st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
+                    
+                    # After this code:
                     st.write("### Interpretation:")                
                     st.markdown(f"<div style='background-color: transparent; padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
 
-                    # In your interpretation section after displaying the result
+                    # Add the new rating form code here
                     st.write("### How would you rate this answer?")
 
-                    # Create columns for the rating system
-                    col1, col2, col3, col4, col5, col6 = st.columns(6)
-
-                    # Define rating submission function with explicit form submission
-                    def submit_rating(rating_value):
-                        rating_str = str(rating_value)  # Ensure rating is a string
-                        st.session_state.rating = rating_str
-                        st.session_state.has_rated = True
-                        
-                        # Get the current question ID from session state
-                        question_id = st.session_state.get("current_question_id")
-                        
-                        # Log the rating to S3
-                        if question_id:
-                            log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
-                        else:
-                            # Fallback to old method
-                            log_question_and_rating_to_s3(question=st.session_state.current_question, 
-                                                        rating=rating_str, 
-                                                        uploaded_file_name="TestDoc")
-                        
-                        # No need for success message here as page will reload
-
-                    # Rating buttons - now in a form for explicit submission
+                    # Create a single form with radio buttons instead of multiple submit buttons
                     with st.form(key="rating_form"):
-                        st.write("Select your rating:")
+                        rating_value = st.radio(
+                            "Select your rating:",
+                            options=["1", "2", "3", "4", "5"],
+                            horizontal=True,
+                            disabled=st.session_state.has_rated
+                        )
                         
-                        # Create a horizontal layout for rating buttons
-                        cols = st.columns(5)
-                        with cols[0]:
-                            rate1 = st.form_submit_button("1", disabled=st.session_state.has_rated)
-                        with cols[1]:
-                            rate2 = st.form_submit_button("2", disabled=st.session_state.has_rated)
-                        with cols[2]:
-                            rate3 = st.form_submit_button("3", disabled=st.session_state.has_rated)
-                        with cols[3]:
-                            rate4 = st.form_submit_button("4", disabled=st.session_state.has_rated)
-                        with cols[4]:
-                            rate5 = st.form_submit_button("5", disabled=st.session_state.has_rated)
+                        # Single submit button for the form
+                        submit_button = st.form_submit_button("Submit Rating", disabled=st.session_state.has_rated)
                         
-                        # Custom submission message
-                        st.caption("Click a rating to submit your feedback")
+                        if submit_button:
+                            # Get the question_id that was stored when processing the question
+                            question_id = st.session_state.current_question_id
+                            
+                            # Log the rating
+                            if question_id:
+                                log_question_and_rating_to_s3(question_id=question_id, rating=rating_value)
+                                st.session_state.has_rated = True
+                                st.session_state.rating = rating_value
+                                
+                                # Show success message (will appear after rerun)
+                                st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
+                            else:
+                                st.error("Unable to submit rating: missing question ID")
 
-                    # Process button clicks
-                    if rate1:
-                        submit_rating(1)
-                    elif rate2:
-                        submit_rating(2)
-                    elif rate3:
-                        submit_rating(3)
-                    elif rate4:
-                        submit_rating(4)
-                    elif rate5:
-                        submit_rating(5)
-
-                    # Show current rating if it exists
+                    # Show current rating if it exists (outside the form)
                     if st.session_state.get('has_rated', False):
                         rating_value = st.session_state.get('rating', '0')
                         st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
