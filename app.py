@@ -333,8 +333,8 @@ def set_background_from_s3():
         print(f"Error loading background image: {str(e)}")
         
 def simple_finance_chat():
-    # Set the background image at the beginning
-    set_background_from_s3()
+    # # Set the background image at the beginning
+    # set_background_from_s3()
     
     st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
     st.write("დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
