@@ -53,3 +53,4 @@ typing_extensions==4.12.2
 tzdata==2024.2
 urllib3==2.2.3
 boto3==1.35.34
+uuid
