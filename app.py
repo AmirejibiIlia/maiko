@@ -667,98 +667,64 @@ def simple_finance_chat():
                     # Create columns for the rating system
                     col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-                    # # Define rating submission function with explicit form submission
-                    # def submit_rating(rating_value):
-                    #     rating_str = str(rating_value)  # Ensure rating is a string
-                    #     st.session_state.rating = rating_str
-                    #     st.session_state.has_rated = True
-                        
-                    #     # Get the current question ID from session state
-                    #     question_id = st.session_state.get("current_question_id")
-                        
-                    #     # Log the rating to S3
-                    #     if question_id:
-                    #         log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
-                    #     else:
-                    #         # Fallback to old method
-                    #         log_question_and_rating_to_s3(question=st.session_state.current_question, 
-                    #                                     rating=rating_str, 
-                    #                                     uploaded_file_name="TestDoc")
-                        
-                    #     # No need for success message here as page will reload
-                    
+                    # Define rating submission function with explicit form submission
                     def submit_rating(rating_value):
-                        rating_str = str(rating_value)
+                        rating_str = str(rating_value)  # Ensure rating is a string
                         st.session_state.rating = rating_str
                         st.session_state.has_rated = True
                         
+                        # Get the current question ID from session state
                         question_id = st.session_state.get("current_question_id")
                         
+                        # Log the rating to S3
                         if question_id:
                             log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
                         else:
+                            # Fallback to old method
                             log_question_and_rating_to_s3(question=st.session_state.current_question, 
                                                         rating=rating_str, 
                                                         uploaded_file_name="TestDoc")
                         
-                        # Show success message without reload
-                        st.success(f"You rated this answer: {rating_str}/5. Thank you for your feedback!", icon="✅")
+                        # No need for success message here as page will reload
+                    
                     
 
-                    # # Rating buttons - now in a form for explicit submission
-                    # with st.form(key="rating_form"):
-                    #     st.write("Select your rating:")
+                    # Rating buttons - now in a form for explicit submission
+                    with st.form(key="rating_form"):
+                        st.write("Select your rating:")
                         
-                    #     # Create a horizontal layout for rating buttons
-                    #     cols = st.columns(5)
-                    #     with cols[0]:
-                    #         rate1 = st.form_submit_button("1", disabled=st.session_state.has_rated)
-                    #     with cols[1]:
-                    #         rate2 = st.form_submit_button("2", disabled=st.session_state.has_rated)
-                    #     with cols[2]:
-                    #         rate3 = st.form_submit_button("3", disabled=st.session_state.has_rated)
-                    #     with cols[3]:
-                    #         rate4 = st.form_submit_button("4", disabled=st.session_state.has_rated)
-                    #     with cols[4]:
-                    #         rate5 = st.form_submit_button("5", disabled=st.session_state.has_rated)
+                        # Create a horizontal layout for rating buttons
+                        cols = st.columns(5)
+                        with cols[0]:
+                            rate1 = st.form_submit_button("1", disabled=st.session_state.has_rated)
+                        with cols[1]:
+                            rate2 = st.form_submit_button("2", disabled=st.session_state.has_rated)
+                        with cols[2]:
+                            rate3 = st.form_submit_button("3", disabled=st.session_state.has_rated)
+                        with cols[3]:
+                            rate4 = st.form_submit_button("4", disabled=st.session_state.has_rated)
+                        with cols[4]:
+                            rate5 = st.form_submit_button("5", disabled=st.session_state.has_rated)
                         
-                    #     # Custom submission message
-                    #     st.caption("Click a rating to submit your feedback")
+                        # Custom submission message
+                        st.caption("Click a rating to submit your feedback")
 
-                    # # Process button clicks
-                    # if rate1:
-                    #     submit_rating(1)
-                    # elif rate2:
-                    #     submit_rating(2)
-                    # elif rate3:
-                    #     submit_rating(3)
-                    # elif rate4:
-                    #     submit_rating(4)
-                    # elif rate5:
-                    #     submit_rating(5)
+                    # Process button clicks
+                    if rate1:
+                        submit_rating(1)
+                    elif rate2:
+                        submit_rating(2)
+                    elif rate3:
+                        submit_rating(3)
+                    elif rate4:
+                        submit_rating(4)
+                    elif rate5:
+                        submit_rating(5)
 
-                    # # Show current rating if it exists
-                    # if st.session_state.get('has_rated', False):
-                    #     rating_value = st.session_state.get('rating', '0')
-                    #     st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
-                    
-                    # Rating buttons with callbacks
-                    cols = st.columns(5)
-                    with cols[0]:
-                        if st.button("1", disabled=st.session_state.has_rated, key="rate1"):
-                            submit_rating(1)
-                    with cols[1]:
-                        if st.button("2", disabled=st.session_state.has_rated, key="rate2"):
-                            submit_rating(2)
-                    with cols[2]:
-                        if st.button("3", disabled=st.session_state.has_rated, key="rate3"):
-                            submit_rating(3)
-                    with cols[3]:
-                        if st.button("4", disabled=st.session_state.has_rated, key="rate4"):
-                            submit_rating(4)
-                    with cols[4]:
-                        if st.button("5", disabled=st.session_state.has_rated, key="rate5"):
-                            submit_rating(5)
+                    # Show current rating if it exists
+                    if st.session_state.get('has_rated', False):
+                        rating_value = st.session_state.get('rating', '0')
+                        st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
         
                     
             except Exception as e:
