@@ -626,6 +626,8 @@ def simple_finance_chat():
                         st.write("Problematic character position:", e.pos)
                         st.write("Character causing the error:", response_text[e.pos:e.pos+10] if e.pos < len(response_text) else "End of string")
                         st.code(response_text, language="json")
+    except Exception as e:
+        st.error(f"Error loading data from S3: {str(e)}")    
 
 if __name__ == "__main__":
     simple_finance_chat()
