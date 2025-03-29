@@ -235,30 +235,42 @@ def log_question_and_rating_to_s3(question, rating=None, uploaded_file_name=None
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             existing_content = response['Body'].read().decode('utf-8')
             file_exists = True
-        except:
-            file_exists = False
             
-        # Prepare log entry
-        log_entry = f"{timestamp},{uploaded_file_name or 'None'},{question},{rating or ''}\n"
+            # Parse existing content into a DataFrame
+            import io
+            import pandas as pd
+            df = pd.read_csv(io.StringIO(existing_content))
+            
+        except Exception as e:
+            file_exists = False
+            df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating"])
         
-        if file_exists:
-            # Append to existing file
-            updated_content = existing_content + log_entry
-        else:
-            # Create new file with header
-            updated_content = "timestamp,file_name,question,rating\n" + log_entry
+        # Add new row to DataFrame
+        new_row = {
+            "timestamp": timestamp,
+            "file_name": uploaded_file_name or 'None',
+            "question": question,
+            "rating": rating if rating is not None else ""
+        }
+        
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        
+        # Convert back to CSV
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
         
         # Upload to S3 with explicit UTF-8 encoding
         s3_client.put_object(
             Bucket=bucket_name,
             Key=file_key,
-            Body=updated_content.encode('utf-8'),
+            Body=csv_buffer.getvalue().encode('utf-8'),
             ContentType='text/csv; charset=utf-8'
         )
     
     except Exception as e:
         # Print error but don't disrupt user experience
         print(f"Failed to log question and rating: {str(e)}")
+        
                 
 def set_background_from_s3():
     """
