@@ -8,6 +8,7 @@ import io
 import csv
 import datetime 
 import base64
+import uuid
 
 
 def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
@@ -211,10 +212,7 @@ def load_excel_from_s3():
         st.error(f"Error loading Excel file from S3: {str(e)}")
         return None
 
-def log_question_and_rating_to_s3(question, rating=None, uploaded_file_name=None):
-    """
-    Function to log questions and ratings to S3 with proper encoding for Georgian characters
-    """
+def log_question_and_rating_to_s3(question_id=None, question=None, rating=None, uploaded_file_name=None):
     try:
         # Get timestamp
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -234,26 +232,34 @@ def log_question_and_rating_to_s3(question, rating=None, uploaded_file_name=None
         try:
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             existing_content = response['Body'].read().decode('utf-8')
-            file_exists = True
             
             # Parse existing content into a DataFrame
-            import io
-            import pandas as pd
             df = pd.read_csv(io.StringIO(existing_content))
             
         except Exception as e:
-            file_exists = False
-            df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating"])
+            df = pd.DataFrame(columns=["question_id", "timestamp", "file_name", "question", "rating"])
         
-        # Add new row to DataFrame
-        new_row = {
-            "timestamp": timestamp,
-            "file_name": uploaded_file_name or 'None',
-            "question": question,
-            "rating": rating if rating is not None else ""
-        }
-        
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        if question_id is None:
+            # This is a new question - generate a unique ID
+            question_id = str(uuid.uuid4())
+            
+            # Add new row
+            new_row = {
+                "question_id": question_id,
+                "timestamp": timestamp,
+                "file_name": uploaded_file_name or 'None',
+                "question": question,
+                "rating": rating if rating is not None else ""
+            }
+            
+            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            
+        else:
+            # This is a rating update
+            # Find the row with matching question_id and update it
+            if question_id in df["question_id"].values:
+                idx = df.index[df["question_id"] == question_id].tolist()[0]
+                df.at[idx, "rating"] = rating
         
         # Convert back to CSV
         csv_buffer = io.StringIO()
@@ -266,11 +272,14 @@ def log_question_and_rating_to_s3(question, rating=None, uploaded_file_name=None
             Body=csv_buffer.getvalue().encode('utf-8'),
             ContentType='text/csv; charset=utf-8'
         )
-    
+        
+        return question_id
+        
     except Exception as e:
         # Print error but don't disrupt user experience
         print(f"Failed to log question and rating: {str(e)}")
-        
+        return question_id if question_id else None
+            
                 
 def set_background_from_s3():
     """
@@ -455,8 +464,9 @@ def simple_finance_chat():
             st.session_state.has_rated = False
             st.session_state.current_question = question
             
-            # # Log the question silently to Amazon S3 (without rating initially)
-            # log_question_and_rating_to_s3(question, uploaded_file_name="TestDoc")
+            # Log the question and store its ID
+            question_id = log_question_and_rating_to_s3(question=question, uploaded_file_name="TestDoc")
+            st.session_state.current_question_id = question_id
             
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             
@@ -654,8 +664,12 @@ def simple_finance_chat():
                         st.session_state.rating = rating_value
                         st.session_state.has_rated = True
                         
-                        # Log the question and rating together only after rating is submitted
-                        log_question_and_rating_to_s3(st.session_state.current_question, rating_value, "TestDoc")
+                        # Update the log with the rating
+                        log_question_and_rating_to_s3(
+                            question_id=st.session_state.current_question_id, 
+                            rating=rating_value
+                        )
+                        
                         st.success(f"Rating of {rating_value}/5 submitted. Thank you for your feedback!")
                         
                     # Rating buttons
