@@ -275,6 +275,14 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
         elif question_id is not None and rating is not None:
             # Update existing entry with rating
             print(f"Updating rating for question_id: {question_id}")
+            # Add more verbose debugging to find out what's happening
+            print(f"DataFrame contains question_id column: {'question_id' in df.columns}")
+            if "question_id" in df.columns:
+                print(f"All question_ids in DataFrame: {df['question_id'].tolist()}")
+                print(f"Looking for: {question_id}")
+                matches = df["question_id"] == question_id
+                print(f"Matches found: {matches.sum()}")
+                
             if "question_id" in df.columns and question_id in df["question_id"].values:
                 # Find and update the matching row
                 idx = df.index[df["question_id"] == question_id].tolist()[0]
@@ -282,9 +290,16 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
                 print(f"Updated rating to {rating} at index {idx}")
             else:
                 print(f"Warning: question_id {question_id} not found in logs")
-                # Print available question IDs for debugging
-                if "question_id" in df.columns:
-                    print(f"Available question_ids: {df['question_id'].tolist()}")
+                # If the question_id isn't found, add a new row as a fallback
+                new_row = {
+                    "timestamp": timestamp,
+                    "file_name": uploaded_file_name or 'None',
+                    "question": "Rating update for missing ID",
+                    "rating": rating,
+                    "question_id": question_id
+                }
+                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                print(f"Added fallback row with question_id: {question_id}")
         
         # Convert back to CSV
         csv_buffer = io.StringIO()
@@ -305,7 +320,7 @@ def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name
         # Print error but don't disrupt user experience
         print(f"Failed to log question and rating: {str(e)}")
         return question_id
-            
+                
                 
 def set_background_from_s3():
     """
@@ -699,6 +714,7 @@ def simple_finance_chat():
                         # Log the rating to S3
                         if question_id:
                             log_question_and_rating_to_s3(question_id=question_id, rating=rating_value)
+                            print(f"Logged rating {rating_value} for question_id {question_id}")
                         else:
                             print("Warning: No question_id found in session state")
                             # Fallback to old method
