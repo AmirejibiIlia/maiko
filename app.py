@@ -212,7 +212,10 @@ def load_excel_from_s3():
         st.error(f"Error loading Excel file from S3: {str(e)}")
         return None
 
-def log_question_and_rating_to_s3(question_id=None, question=None, rating=None, uploaded_file_name=None):
+def log_question_and_rating_to_s3(question=None, rating=None, uploaded_file_name=None, question_id=None):
+    """
+    Function to log questions and ratings to S3 with proper encoding for Georgian characters
+    """
     try:
         # Get timestamp
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -228,38 +231,60 @@ def log_question_and_rating_to_s3(question_id=None, question=None, rating=None, 
         bucket_name = st.secrets["aws"]["bucket_name"]
         file_key = "question_logs.csv"
         
+        # Debug print
+        print(f"Logging: question_id={question_id}, rating={rating}, question={question}")
+        
         # Check if file exists in S3
         try:
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             existing_content = response['Body'].read().decode('utf-8')
+            print("Found existing log file")
             
             # Parse existing content into a DataFrame
+            import io
+            import pandas as pd
             df = pd.read_csv(io.StringIO(existing_content))
             
-        except Exception as e:
-            df = pd.DataFrame(columns=["question_id", "timestamp", "file_name", "question", "rating"])
-        
-        if question_id is None:
-            # This is a new question - generate a unique ID
-            question_id = str(uuid.uuid4())
+            # Display structure for debugging
+            print(f"Current log columns: {df.columns.tolist()}")
+            print(f"Sample row: {df.iloc[0].to_dict() if len(df) > 0 else 'No rows'}")
             
-            # Add new row
+        except Exception as e:
+            print(f"No existing log file or error: {e}")
+            # Create new DataFrame with consistent column order
+            df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating", "question_id"])
+        
+        if question_id is None and question is not None:
+            # New question entry
+            import uuid
+            question_id = str(uuid.uuid4())
+            print(f"Generated new question_id: {question_id}")
+            
+            # Add new row to DataFrame
             new_row = {
-                "question_id": question_id,
                 "timestamp": timestamp,
                 "file_name": uploaded_file_name or 'None',
                 "question": question,
-                "rating": rating if rating is not None else ""
+                "rating": rating if rating is not None else "",
+                "question_id": question_id
             }
             
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            print(f"Added new row with question_id: {question_id}")
             
-        else:
-            # This is a rating update
-            # Find the row with matching question_id and update it
-            if question_id in df["question_id"].values:
+        elif question_id is not None and rating is not None:
+            # Update existing entry with rating
+            print(f"Updating rating for question_id: {question_id}")
+            if "question_id" in df.columns and question_id in df["question_id"].values:
+                # Find and update the matching row
                 idx = df.index[df["question_id"] == question_id].tolist()[0]
                 df.at[idx, "rating"] = rating
+                print(f"Updated rating to {rating} at index {idx}")
+            else:
+                print(f"Warning: question_id {question_id} not found in logs")
+                # Print available question IDs for debugging
+                if "question_id" in df.columns:
+                    print(f"Available question_ids: {df['question_id'].tolist()}")
         
         # Convert back to CSV
         csv_buffer = io.StringIO()
@@ -273,12 +298,13 @@ def log_question_and_rating_to_s3(question_id=None, question=None, rating=None, 
             ContentType='text/csv; charset=utf-8'
         )
         
+        print(f"Successfully saved log to S3. Returning question_id: {question_id}")
         return question_id
-        
+    
     except Exception as e:
         # Print error but don't disrupt user experience
         print(f"Failed to log question and rating: {str(e)}")
-        return question_id if question_id else None
+        return question_id
             
                 
 def set_background_from_s3():
@@ -464,9 +490,10 @@ def simple_finance_chat():
             st.session_state.has_rated = False
             st.session_state.current_question = question
             
-            # Log the question and store its ID
+            # Log the question silently to Amazon S3 (without rating initially)
             question_id = log_question_and_rating_to_s3(question=question, uploaded_file_name="TestDoc")
             st.session_state.current_question_id = question_id
+            print(f"Set current_question_id in session state: {question_id}")
             
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
             
@@ -661,14 +688,21 @@ def simple_finance_chat():
                     
                     # Define rating submission function
                     def submit_rating(rating_value):
+                        print(f"Rating submitted: {rating_value}")
                         st.session_state.rating = rating_value
                         st.session_state.has_rated = True
                         
-                        # Update the log with the rating
-                        log_question_and_rating_to_s3(
-                            question_id=st.session_state.current_question_id, 
-                            rating=rating_value
-                        )
+                        # Get the current question ID from session state
+                        question_id = st.session_state.get("current_question_id")
+                        print(f"Retrieved question_id from session state: {question_id}")
+                        
+                        # Log the rating to S3
+                        if question_id:
+                            log_question_and_rating_to_s3(question_id=question_id, rating=rating_value)
+                        else:
+                            print("Warning: No question_id found in session state")
+                            # Fallback to old method
+                            log_question_and_rating_to_s3(question=st.session_state.current_question, rating=rating_value, uploaded_file_name="TestDoc")
                         
                         st.success(f"Rating of {rating_value}/5 submitted. Thank you for your feedback!")
                         
