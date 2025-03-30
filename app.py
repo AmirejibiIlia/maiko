@@ -366,6 +366,24 @@ def set_background_from_s3():
     except Exception as e:
         print(f"Error loading background image: {str(e)}")
         
+def submit_rating(rating_value):
+    rating_str = str(rating_value)  # Ensure rating is a string
+    st.session_state.rating = rating_str
+    st.session_state.has_rated = True
+                        
+    # Get the current question ID from session state
+    question_id = st.session_state.get("current_question_id")
+                        
+    # Log the rating to S3
+    if question_id:
+        log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
+    else:
+    # Fallback to old method
+        log_question_and_rating_to_s3(question=st.session_state.current_question, 
+                                    rating=rating_str, 
+                                    uploaded_file_name="TestDoc")
+                        
+        
 def simple_finance_chat():
     # # Set the background image at the beginning
     # set_background_from_s3()
@@ -668,25 +686,25 @@ def simple_finance_chat():
                     # Create columns for the rating system
                     col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-                    # Define rating submission function with explicit form submission
-                    def submit_rating(rating_value):
-                        rating_str = str(rating_value)  # Ensure rating is a string
-                        st.session_state.rating = rating_str
-                        st.session_state.has_rated = True
+                    # # Define rating submission function with explicit form submission
+                    # def submit_rating(rating_value):
+                    #     rating_str = str(rating_value)  # Ensure rating is a string
+                    #     st.session_state.rating = rating_str
+                    #     st.session_state.has_rated = True
                         
-                        # Get the current question ID from session state
-                        question_id = st.session_state.get("current_question_id")
+                    #     # Get the current question ID from session state
+                    #     question_id = st.session_state.get("current_question_id")
                         
-                        # Log the rating to S3
-                        if question_id:
-                            log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
-                        else:
-                            # Fallback to old method
-                            log_question_and_rating_to_s3(question=st.session_state.current_question, 
-                                                        rating=rating_str, 
-                                                        uploaded_file_name="TestDoc")
+                    #     # Log the rating to S3
+                    #     if question_id:
+                    #         log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
+                    #     else:
+                    #         # Fallback to old method
+                    #         log_question_and_rating_to_s3(question=st.session_state.current_question, 
+                    #                                     rating=rating_str, 
+                    #                                     uploaded_file_name="TestDoc")
                         
-                        # No need for success message here as page will reload
+                    #     # No need for success message here as page will reload
                     
                     
 
