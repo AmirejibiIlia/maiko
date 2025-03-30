@@ -10,7 +10,6 @@ import datetime
 import base64
 import uuid
 from streamlit.components.v1 import html
-from logging_system import initialize_session_log, log_question, log_rating, save_logs_to_s3, check_session_end
 
 
 def query_data(data: pd.DataFrame, where: dict = None, group_by: list = None, 
@@ -366,7 +365,6 @@ def set_background_from_s3():
         )
     except Exception as e:
         print(f"Error loading background image: {str(e)}")
-        
 def submit_rating(rating_value):
     rating_str = str(rating_value)  # Ensure rating is a string
     st.session_state.rating = rating_str
@@ -386,9 +384,6 @@ def submit_rating(rating_value):
                         
         
 def simple_finance_chat():
-    # Initialize the session logging system
-    initialize_session_log()
-    
     # # Set the background image at the beginning
     # set_background_from_s3()
     
@@ -400,14 +395,6 @@ def simple_finance_chat():
         st.session_state.has_rated = False
     if 'current_question' not in st.session_state:
         st.session_state.current_question = ""
-        
-    # Add a session end button in the sidebar
-    if st.sidebar.button("End Session & Save Logs"):
-        st.session_state.end_session = True
-        if save_logs_to_s3():
-            st.sidebar.success("Session logs saved successfully!")
-        else:
-            st.sidebar.error("Failed to save session logs")
     
     # Load data directly from S3 instead of file uploader
     try:
@@ -496,23 +483,15 @@ def simple_finance_chat():
         
         question = st.text_input("Ask your financial question:")
         
-        # if question and question != st.session_state.current_question:
-        #     # Reset rating state when a new question is asked
-        #     st.session_state.has_rated = False
-        #     st.session_state.current_question = question
-            
-        #     # Log the question silently to Amazon S3 (without rating initially)
-        #     question_id = log_question_and_rating_to_s3(question=question, uploaded_file_name="TestDoc")
-        #     st.session_state.current_question_id = question_id
-        #     print(f"Set current_question_id in session state: {question_id}")
-        
         if question and question != st.session_state.current_question:
             # Reset rating state when a new question is asked
             st.session_state.has_rated = False
             st.session_state.current_question = question
             
-            # Log the question to the session DataFrame
-            question_id = log_question(question=question, file_name="TestDoc")
+            # Log the question silently to Amazon S3 (without rating initially)
+            question_id = log_question_and_rating_to_s3(question=question, uploaded_file_name="TestDoc")
+            st.session_state.current_question_id = question_id
+            print(f"Set current_question_id in session state: {question_id}")
             
             
             client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
@@ -706,7 +685,28 @@ def simple_finance_chat():
                     # Create columns for the rating system
                     col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-            
+                    # # Define rating submission function with explicit form submission
+                    # def submit_rating(rating_value):
+                    #     rating_str = str(rating_value)  # Ensure rating is a string
+                    #     st.session_state.rating = rating_str
+                    #     st.session_state.has_rated = True
+                        
+                    #     # Get the current question ID from session state
+                    #     question_id = st.session_state.get("current_question_id")
+                        
+                    #     # Log the rating to S3
+                    #     if question_id:
+                    #         log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
+                    #     else:
+                    #         # Fallback to old method
+                    #         log_question_and_rating_to_s3(question=st.session_state.current_question, 
+                    #                                     rating=rating_str, 
+                    #                                     uploaded_file_name="TestDoc")
+                        
+                    #     # No need for success message here as page will reload
+                    
+                    
+
                     # Rating buttons - now in a form for explicit submission
                     with st.form(key="rating_form"):
                         st.write("Select your rating:")
@@ -727,66 +727,37 @@ def simple_finance_chat():
                         # Custom submission message
                         st.caption("Click a rating to submit your feedback")
 
-                    # # Process button clicks
-                    # if rate1:
-                    #     submit_rating(1)
-                    # elif rate2:
-                    #     submit_rating(2)
-                    # elif rate3:
-                    #     submit_rating(3)
-                    # elif rate4:
-                    #     submit_rating(4)
-                    # elif rate5:
-                    #     submit_rating(5)
-
-                    # # Show current rating if it exists
-                    # if st.session_state.get('has_rated', False):
-                    #     rating_value = st.session_state.get('rating', '0')
-                    #     st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
-                    # Process button clicks with the new logging system
+                    # Process button clicks
                     if rate1:
-                        log_rating(st.session_state.current_question_id, 1)
-                        st.session_state.rating = "1"
-                        st.session_state.has_rated = True
+                        submit_rating(1)
                     elif rate2:
-                        log_rating(st.session_state.current_question_id, 2)
-                        st.session_state.rating = "2"
-                        st.session_state.has_rated = True
+                        submit_rating(2)
                     elif rate3:
-                        log_rating(st.session_state.current_question_id, 3)
-                        st.session_state.rating = "3"
-                        st.session_state.has_rated = True
+                        submit_rating(3)
                     elif rate4:
-                        log_rating(st.session_state.current_question_id, 4)
-                        st.session_state.rating = "4"
-                        st.session_state.has_rated = True
+                        submit_rating(4)
                     elif rate5:
-                        log_rating(st.session_state.current_question_id, 5)
-                        st.session_state.rating = "5"
-                        st.session_state.has_rated = True
-                    
+                        submit_rating(5)
+
                     # Show current rating if it exists
                     if st.session_state.get('has_rated', False):
                         rating_value = st.session_state.get('rating', '0')
                         st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
+        
                     
             except Exception as e:
                 st.error(f"Error: {str(e)}")
                 st.error(f"Response content: {response.content[0].text if 'response' in locals() else 'No response'}")
                 
-                # # Show debugging info for JSON parsing errors
-                # if isinstance(e, json.JSONDecodeError):
-                #     st.error("JSON parsing error. Check the response structure.")
-                #     if 'response_text' in locals():
-                #         st.write("Problematic character position:", e.pos)
-                #         st.write("Character causing the error:", response_text[e.pos:e.pos+10] if e.pos < len(response_text) else "End of string")
-                #         st.code(response_text, language="json")
-                        
+                # Show debugging info for JSON parsing errors
+                if isinstance(e, json.JSONDecodeError):
+                    st.error("JSON parsing error. Check the response structure.")
+                    if 'response_text' in locals():
+                        st.write("Problematic character position:", e.pos)
+                        st.write("Character causing the error:", response_text[e.pos:e.pos+10] if e.pos < len(response_text) else "End of string")
+                        st.code(response_text, language="json")
     except Exception as e:
-        st.error(f"Error loading data from S3: {str(e)}")
-            
-    # Check for session end before finishing
-    check_session_end()
+        st.error(f"Error loading data from S3: {str(e)}")    
 
 
 if __name__ == "__main__":
