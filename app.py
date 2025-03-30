@@ -145,9 +145,50 @@ def extract_json_from_text(text):
     # If all else fails, return the original text
     return text
 
-def interpret_results(df, question):
+# def interpret_results(df, question):
+#     """
+#     Send the query results back to Claude for interpretation.
+#     """
+#     client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
+    
+#     # Convert the dataframe to a JSON string for Claude
+#     df_json = df.to_json(orient='records', date_format='iso')
+    
+#     interpretation_prompt = f"""
+#     Original question: {question}
+    
+#     Query results:
+#     {df_json}
+        
+#     Please answer in a clear, concise way to the original question. Answer in Georgian.
+#     Keep your answer brief and to the point, focusing only on what was asked in the original question!
+
+#     If the question asks for trends or comparisons, express the percent changes when relevant.
+
+#     Rules for answering:
+#         1. Perform all calculations with precision – use exact arithmetic operations instead of estimations.  
+#         2. If the question involves addition, subtraction, multiplication, or division, compute the exact result.   
+#         3. Do not provide additional information, for example trends, comparisons, or additional analysis unless specifically requested.
+#         4. If asked about a specific metric in a specific year, provide just that number
+#         5. If asked about trends, compare numbers and calculate percentage changes
+#         6. If asked about highest/lowest values, specify both the date and the value
+#         7. Format numbers with thousand separators for better readability
+#         8. Give structured output!
+#     """
+    
+#     response = client.messages.create(
+#         model="claude-3-sonnet-20240229",
+#         max_tokens=1000,
+#         temperature=0,
+#         messages=[{"role": "user", "content": interpretation_prompt}]
+#     )
+    
+#     return response.content[0].text.strip()
+
+def interpret_results(df, question, question_id=None):
     """
     Send the query results back to Claude for interpretation.
+    Include question_id parameter to maintain session consistency.
     """
     client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
     
@@ -183,7 +224,7 @@ def interpret_results(df, question):
         messages=[{"role": "user", "content": interpretation_prompt}]
     )
     
-    return response.content[0].text.strip()
+    return response.content[0].text.strip(), question_id 
 
 def load_excel_from_s3():
     """
@@ -391,11 +432,14 @@ def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
     st.write("დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
     
+        
     # Initialize session state for rating
     if 'has_rated' not in st.session_state:
         st.session_state.has_rated = False
     if 'current_question' not in st.session_state:
         st.session_state.current_question = ""
+    if 'current_question_id' not in st.session_state:
+        st.session_state.current_question_id = None
     
     # Load data directly from S3 instead of file uploader
     try:
@@ -675,7 +719,15 @@ def simple_finance_chat():
                 interpretation_section = st.container()
                 with interpretation_section:
                     result_df = execute_query(query_json)
-                    interpretation = interpret_results(result_df, question)
+                    # Pass the question_id to maintain continuity
+                    interpretation, question_id = interpret_results(
+                        result_df, 
+                        question,
+                        question_id=st.session_state.current_question_id
+                    )
+                    
+                    # Ensure question_id is still saved in session state (redundant but safe)
+                    st.session_state.current_question_id = question_id
                         
                     st.write("### Interpretation:")                
                     st.markdown(f"<div style='background-color: transparent; padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
@@ -686,28 +738,7 @@ def simple_finance_chat():
                     # Create columns for the rating system
                     col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-                    # # Define rating submission function with explicit form submission
-                    # def submit_rating(rating_value):
-                    #     rating_str = str(rating_value)  # Ensure rating is a string
-                    #     st.session_state.rating = rating_str
-                    #     st.session_state.has_rated = True
-                        
-                    #     # Get the current question ID from session state
-                    #     question_id = st.session_state.get("current_question_id")
-                        
-                    #     # Log the rating to S3
-                    #     if question_id:
-                    #         log_question_and_rating_to_s3(question_id=question_id, rating=rating_str)
-                    #     else:
-                    #         # Fallback to old method
-                    #         log_question_and_rating_to_s3(question=st.session_state.current_question, 
-                    #                                     rating=rating_str, 
-                    #                                     uploaded_file_name="TestDoc")
-                        
-                    #     # No need for success message here as page will reload
-                    
-                    
-
+            
                     # Rating buttons - now in a form for explicit submission
                     with st.form(key="rating_form"):
                         st.write("Select your rating:")
