@@ -333,11 +333,15 @@ def log_to_s3():
         file_name = st.session_state.get("question_file_name", "None")
         rating = st.session_state.get("rating", "")
         
+        # Print debug info to understand what's happening
+        print(f"Current rating in session state: {rating}")
+        
         # Check if this question ID already exists in the dataframe
         if "question_id" in df.columns and df["question_id"].astype(str).eq(str(question_id)).any():
             # Update existing entry
             idx = df.index[df["question_id"].astype(str) == str(question_id)].tolist()[0]
             df.at[idx, "rating"] = rating
+            print(f"Updated rating for existing entry: {rating}")
         else:
             # Create a new entry
             new_row = {
@@ -348,6 +352,7 @@ def log_to_s3():
                 "question_id": question_id
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            print(f"Created new entry with rating: {rating}")
         
         # Upload to S3 with explicit UTF-8 encoding
         csv_buffer = io.StringIO()
@@ -359,9 +364,10 @@ def log_to_s3():
             ContentType='text/csv; charset=utf-8'
         )
         
-        # Clear rating from session state after successful logging
-        if "rating" in st.session_state:
+        # Set rating as successfully logged
+        if "rating" in st.session_state and st.session_state.rating:
             st.session_state.has_rated = True
+            print("Rating successfully logged and has_rated set to True")
         
         return True
     except Exception as e:
@@ -369,7 +375,7 @@ def log_to_s3():
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         return False
-
+    
 def submit_rating(rating_value):
     """
     Store rating in session state and trigger logging
