@@ -213,7 +213,7 @@ def load_excel_from_s3():
         st.error(f"Error loading Excel file from S3: {str(e)}")
         return None
 
-def store_question_in_session(question, query_json=None, uploaded_file_name="TestDoc"):
+def store_question_in_session(question, raw_response=None, uploaded_file_name="TestDoc"):
     """
     Store question details in session state to be logged later
     """
@@ -228,10 +228,9 @@ def store_question_in_session(question, query_json=None, uploaded_file_name="Tes
     st.session_state.question_file_name = uploaded_file_name
     st.session_state.has_rated = False
     
-    # Store the generated JSON if provided
-    if query_json is not None:
-        # Convert to string for storage
-        st.session_state.generated_json = json.dumps(query_json)
+    # Store the raw response if provided
+    if raw_response is not None:
+        st.session_state.raw_response = raw_response
     
     return question_id
 
@@ -322,7 +321,7 @@ def log_to_s3():
             df = pd.read_csv(io.StringIO(response['Body'].read().decode('utf-8')))
         except Exception:
             # Create new DataFrame if file doesn't exist or other error occurs
-            df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating", "question_id", "generated_json"])
+            df = pd.DataFrame(columns=["timestamp", "file_name", "question", "rating", "question_id", "raw_response"])
         
         # Get current data from session state
         question_id = st.session_state.get("current_question_id", str(uuid.uuid4()))
@@ -330,7 +329,7 @@ def log_to_s3():
         question = st.session_state.get("current_question", "")
         file_name = st.session_state.get("question_file_name", "None")
         rating = st.session_state.get("rating", "")
-        generated_json = st.session_state.get("generated_json", "")
+        raw_response = st.session_state.get("raw_response", "")
         
         # Add some debug output to streamlit
         st.write(f"Debug - Current rating: {rating}", key="debug_rating")
@@ -340,9 +339,9 @@ def log_to_s3():
             # Update existing entry
             idx = df.index[df["question_id"].astype(str) == str(question_id)].tolist()[0]
             df.at[idx, "rating"] = rating
-            # Update generated JSON if not already set
-            if (df.at[idx, "generated_json"] == "" or pd.isna(df.at[idx, "generated_json"])) and generated_json:
-                df.at[idx, "generated_json"] = generated_json
+            # Update raw response if not already set
+            if (df.at[idx, "raw_response"] == "" or pd.isna(df.at[idx, "raw_response"])) and raw_response:
+                df.at[idx, "raw_response"] = raw_response
         else:
             # Create a new entry
             new_row = {
@@ -351,7 +350,7 @@ def log_to_s3():
                 "question": question,
                 "rating": rating,
                 "question_id": question_id,
-                "generated_json": generated_json
+                "raw_response": raw_response
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         
@@ -369,7 +368,8 @@ def log_to_s3():
     except Exception as e:
         st.error(f"Error in logging function: {str(e)}")
         return False
-        
+    
+            
 def submit_rating(rating_value):
     """
     Store rating in session state and trigger logging
@@ -760,6 +760,9 @@ def simple_finance_chat():
                                 
                 response_text = response.content[0].text.strip()
                 
+                # Store the raw response text in session state
+                store_question_in_session(question=question, raw_response=response_text, uploaded_file_name="TestDoc") 
+                
                 # Display raw response for debugging (can be removed in production)
                 st.write("### Raw Response from Claude:")
                 st.write(response_text)
@@ -773,12 +776,11 @@ def simple_finance_chat():
                     cleaned_text = response_text.replace("```json", "").replace("```", "").strip()
                     query_json = json.loads(cleaned_text)
                     
-                # Now that we have the JSON, update the session state with it
-                # Create a copy of the query_json without the DataFrame to store in logs
-                log_json = {k: v for k, v in query_json.items() if k != "data"}
-                store_question_in_session(question=question, query_json=log_json, uploaded_file_name="TestDoc")
-
-                
+                # # Now that we have the JSON, update the session state with it
+                # # Create a copy of the query_json without the DataFrame to store in logs
+                # log_json = {k: v for k, v in query_json.items() if k != "data"}
+                # store_question_in_session(question=question, query_json=log_json, uploaded_file_name="TestDoc")
+                    
                 query_json["data"] = df
                 
                 # Fix order_by format if needed - ensure it's a list of lists, not tuples
