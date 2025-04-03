@@ -416,6 +416,9 @@ def simple_finance_chat():
         st.session_state.rating_submitted = False
     if 'current_rating' not in st.session_state:
         st.session_state.current_rating = None
+    # Add this line to initialize current_question
+    if 'current_question' not in st.session_state:
+        st.session_state.current_question = ""
         
     # Define callback functions for each rating button
     def set_rating_1():
@@ -540,7 +543,8 @@ def simple_finance_chat():
         
         question = st.text_input("Ask your financial question:")
         
-        if question and question != st.session_state.current_question:
+        # if question and question != st.session_state.current_question:
+        if question and question != st.session_state.get('current_question', ""):
             # Reset rating state when a new question is asked
             st.session_state.has_rated = False
             # Store the question in session state first, don't log it yet
