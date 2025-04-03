@@ -1157,40 +1157,33 @@ def simple_finance_chat():
                     # This ensures we log the question even if user doesn't rate it
                     log_to_s3()
 
-                    # Rating section
-                    st.write("### How would you rate this answer?")
-                    
-                    # Create a form for the rating
-                    with st.form(key="rating_form"):
-                        st.write("Select your rating:")
-                        
-                        # Create a horizontal layout for rating buttons
-                        cols = st.columns(5)
-                        with cols[0]:
-                            rate1 = st.form_submit_button("1", disabled=st.session_state.has_rated)
-                        with cols[1]:
-                            rate2 = st.form_submit_button("2", disabled=st.session_state.has_rated)
-                        with cols[2]:
-                            rate3 = st.form_submit_button("3", disabled=st.session_state.has_rated)
-                        with cols[3]:
-                            rate4 = st.form_submit_button("4", disabled=st.session_state.has_rated)
-                        with cols[4]:
-                            rate5 = st.form_submit_button("5", disabled=st.session_state.has_rated)
-                        
-                        # Custom submission message
-                        st.caption("Click a rating to submit your feedback")
+                    # Modify your rating form implementation to:
 
-                    # Process button clicks
-                    if rate1:
-                        submit_rating(1)
-                    elif rate2:
-                        submit_rating(2)
-                    elif rate3:
-                        submit_rating(3)
-                    elif rate4:
-                        submit_rating(4)
-                    elif rate5:
-                        submit_rating(5)
+                    # Instead of using a form, use regular buttons with callbacks
+                    st.write("### How would you rate this answer?")
+
+                    # Create a horizontal layout for rating buttons
+                    cols = st.columns(5)
+                    with cols[0]:
+                        if st.button("1", key="rate1", disabled=st.session_state.has_rated):
+                            submit_rating(1)
+                            st.rerun()  # Force a rerun to update the UI
+                    with cols[1]:
+                        if st.button("2", key="rate2", disabled=st.session_state.has_rated):
+                            submit_rating(2)
+                            st.rerun()
+                    with cols[2]:
+                        if st.button("3", key="rate3", disabled=st.session_state.has_rated):
+                            submit_rating(3)
+                            st.rerun()
+                    with cols[3]:
+                        if st.button("4", key="rate4", disabled=st.session_state.has_rated):
+                            submit_rating(4)
+                            st.rerun()
+                    with cols[4]:
+                        if st.button("5", key="rate5", disabled=st.session_state.has_rated):
+                            submit_rating(5)
+                            st.rerun()
 
                     # Show current rating if it exists
                     if st.session_state.get('has_rated', False):
