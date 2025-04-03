@@ -406,8 +406,8 @@ def simple_finance_chat():
     # # Set the background image at the beginning
     # set_background_from_s3()
     
-    st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
-    st.write("დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
+    st.title("სალამი, მე ვარ MAIA - Demo")
+    st.write("დამისვი ბევრი კითხვები, რომ ბევრი ვისწავლო!")
     
     # Initialize session state variables for tracking ratings
     if 'has_rated' not in st.session_state:
