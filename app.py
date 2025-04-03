@@ -230,7 +230,7 @@ def store_question_in_session(question, raw_response=None, uploaded_file_name="T
     
     # Store the raw response if provided
     if raw_response is not None:
-        st.session_state.raw_response = raw_response
+        st.session_state.raw_response = str(raw_response)
     
     return question_id
 
