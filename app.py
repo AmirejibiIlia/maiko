@@ -333,15 +333,14 @@ def log_to_s3():
         file_name = st.session_state.get("question_file_name", "None")
         rating = st.session_state.get("rating", "")
         
-        # Print debug info to understand what's happening
-        print(f"Current rating in session state: {rating}")
+        # Add some debug output to streamlit
+        st.write(f"Debug - Current rating: {rating}", key="debug_rating")
         
         # Check if this question ID already exists in the dataframe
-        if "question_id" in df.columns and df["question_id"].astype(str).eq(str(question_id)).any():
+        if "question_id" in df.columns and question_id and df["question_id"].astype(str).eq(str(question_id)).any():
             # Update existing entry
             idx = df.index[df["question_id"].astype(str) == str(question_id)].tolist()[0]
             df.at[idx, "rating"] = rating
-            print(f"Updated rating for existing entry: {rating}")
         else:
             # Create a new entry
             new_row = {
@@ -352,7 +351,6 @@ def log_to_s3():
                 "question_id": question_id
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-            print(f"Created new entry with rating: {rating}")
         
         # Upload to S3 with explicit UTF-8 encoding
         csv_buffer = io.StringIO()
@@ -364,18 +362,11 @@ def log_to_s3():
             ContentType='text/csv; charset=utf-8'
         )
         
-        # Set rating as successfully logged
-        if "rating" in st.session_state and st.session_state.rating:
-            st.session_state.has_rated = True
-            print("Rating successfully logged and has_rated set to True")
-        
         return True
     except Exception as e:
-        print(f"Error in logging function: {type(e).__name__}: {e}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        st.error(f"Error in logging function: {str(e)}")
         return False
-    
+        
 def submit_rating(rating_value):
     """
     Store rating in session state and trigger logging
@@ -873,13 +864,49 @@ def simple_finance_chat():
     st.title("სალამი, მე ვარ MAIA - Demo ვერსია")
     st.write("დამისვი მრავალფეროვანი კითხვები, რომ ბევრი ვისწავლო!")
     
-    # Initialize session state variables
+    # Initialize session state variables for tracking ratings
     if 'has_rated' not in st.session_state:
         st.session_state.has_rated = False
-    if 'current_question' not in st.session_state:
-        st.session_state.current_question = ""
-    if 'current_question_id' not in st.session_state:
-        st.session_state.current_question_id = None
+    if 'rating_submitted' not in st.session_state:
+        st.session_state.rating_submitted = False
+    if 'current_rating' not in st.session_state:
+        st.session_state.current_rating = None
+        
+    # Define callback functions for each rating button
+    def set_rating_1():
+        st.session_state.current_rating = "1"
+        st.session_state.rating_submitted = True
+        
+    def set_rating_2():
+        st.session_state.current_rating = "2"
+        st.session_state.rating_submitted = True
+        
+    def set_rating_3():
+        st.session_state.current_rating = "3"
+        st.session_state.rating_submitted = True
+        
+    def set_rating_4():
+        st.session_state.current_rating = "4"
+        st.session_state.rating_submitted = True
+        
+    def set_rating_5():
+        st.session_state.current_rating = "5"
+        st.session_state.rating_submitted = True
+    
+    # Process rating submission if needed
+    if st.session_state.rating_submitted and not st.session_state.has_rated:
+        # Set the rating in session state
+        st.session_state.rating = st.session_state.current_rating
+        
+        # Log the rating
+        log_success = log_to_s3()
+        
+        if log_success:
+            st.session_state.has_rated = True
+        
+        # Reset the submission flag
+        st.session_state.rating_submitted = False
+
     
     # Load data directly from S3 instead of file uploader
     try:
@@ -1165,34 +1192,24 @@ def simple_finance_chat():
 
                     # Modify your rating form implementation to:
 
-                    # Instead of using a form, use regular buttons with callbacks
+                    # Show rating buttons or the current rating
                     st.write("### How would you rate this answer?")
-
-                    # Create a horizontal layout for rating buttons
-                    cols = st.columns(5)
-                    with cols[0]:
-                        if st.button("1", key="rate1", disabled=st.session_state.has_rated):
-                            submit_rating(1)
-                            st.rerun()  # Force a rerun to update the UI
-                    with cols[1]:
-                        if st.button("2", key="rate2", disabled=st.session_state.has_rated):
-                            submit_rating(2)
-                            st.rerun()
-                    with cols[2]:
-                        if st.button("3", key="rate3", disabled=st.session_state.has_rated):
-                            submit_rating(3)
-                            st.rerun()
-                    with cols[3]:
-                        if st.button("4", key="rate4", disabled=st.session_state.has_rated):
-                            submit_rating(4)
-                            st.rerun()
-                    with cols[4]:
-                        if st.button("5", key="rate5", disabled=st.session_state.has_rated):
-                            submit_rating(5)
-                            st.rerun()
-
-                    # Show current rating if it exists
-                    if st.session_state.get('has_rated', False):
+                    
+                    if not st.session_state.get('has_rated', False):
+                        # Create a horizontal layout for rating buttons
+                        cols = st.columns(5)
+                        with cols[0]:
+                            st.button("1", key="rate1", on_click=set_rating_1)
+                        with cols[1]:
+                            st.button("2", key="rate2", on_click=set_rating_2)
+                        with cols[2]:
+                            st.button("3", key="rate3", on_click=set_rating_3)
+                        with cols[3]:
+                            st.button("4", key="rate4", on_click=set_rating_4)
+                        with cols[4]:
+                            st.button("5", key="rate5", on_click=set_rating_5)
+                    else:
+                        # If already rated, show the current rating
                         rating_value = st.session_state.get('rating', '0')
                         st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
         
