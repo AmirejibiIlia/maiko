@@ -153,39 +153,39 @@ from streamlit.components.v1 import html
 #     return prompt
 
 
-# import json
-# from typing import Dict, List, Optional, Union, Literal, Any
-# from pydantic import BaseModel, Field
+import json
+from typing import Dict, List, Optional, Union, Literal, Any
+from pydantic import BaseModel, Field
 
-# class WhereCondition(BaseModel):
-#     """Represents a single condition in a WHERE clause"""
-#     operator: str = Field(..., description="Operator like '=', '>', '<', '>=', '<=', '!='")
-#     value: str = Field(..., description="Value to compare against")
+class WhereCondition(BaseModel):
+    """Represents a single condition in a WHERE clause"""
+    operator: str = Field(..., description="Operator like '=', '>', '<', '>=', '<=', '!='")
+    value: str = Field(..., description="Value to compare against")
 
-# class OrderByItem(BaseModel):
-#     """Represents a single order by specification"""
-#     column: str = Field(..., description="Column name to order by, often with suffix like 'value_sum'")
-#     ascending: bool = Field(..., description="True for ascending order, False for descending")
+class OrderByItem(BaseModel):
+    """Represents a single order by specification"""
+    column: str = Field(..., description="Column name to order by, often with suffix like 'value_sum'")
+    ascending: bool = Field(..., description="True for ascending order, False for descending")
 
-# class QueryModel(BaseModel):
-#     """Model representing the expected JSON structure for financial queries"""
-#     data: Literal["df"] = Field("df", description="Always set to 'df' (the dataframe variable name)")
-#     where: Dict[str, Dict[str, str]] = Field(
-#         default_factory=dict,
-#         description="Filtering dictionary specifying conditions"
-#     )
-#     group_by: Optional[List[str]] = Field(
-#         None, 
-#         description="List of columns to group by"
-#     )
-#     aggregations: Optional[Dict[str, List[str]]] = Field(
-#         None,
-#         description="Dictionary defining aggregation operations"
-#     )
-#     order_by: Optional[List[List[Union[str, bool]]]] = Field(
-#         None,
-#         description="List of arrays for sorting results"
-#     )
+class QueryModel(BaseModel):
+    """Model representing the expected JSON structure for financial queries"""
+    data: Literal["df"] = Field("df", description="Always set to 'df' (the dataframe variable name)")
+    where: Dict[str, Dict[str, str]] = Field(
+        default_factory=dict,
+        description="Filtering dictionary specifying conditions"
+    )
+    group_by: Optional[List[str]] = Field(
+        None, 
+        description="List of columns to group by"
+    )
+    aggregations: Optional[Dict[str, List[str]]] = Field(
+        None,
+        description="Dictionary defining aggregation operations"
+    )
+    order_by: Optional[List[List[Union[str, bool]]]] = Field(
+        None,
+        description="List of arrays for sorting results"
+    )
 
 # def create_claude_prompt(question, data_context):
 #     """
