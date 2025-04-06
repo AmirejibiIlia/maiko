@@ -287,6 +287,12 @@ Example valid structure (not these example values):
 - Example: `{"metrics": {"=": "income from production"}}` filters for rows where metrics equals "income from production"
 - Example: `{"client": {"=": "შპს თი ჯი ლიზინგი 402086924"}}` filters for rows where client equals "შპს თი ჯი ლიზინგი 402086924"
 - Multiple conditions can be specified as separate key-value pairs
+    for example for filtering for date, metrics and client as well:
+            "where": { 
+                "date": { ">=": "2024-01-01", "<=": "2024-12-31" },
+                "metrics": { "=": "შემოსავალი საქონლის მიწოდებიდან 18%"},
+                "client": { "=": "შპს თი ჯი ლიზინგი 402086924"}
+                    }
 - The "where" clause should ONLY be included when there's high confidence that specific filtering is intended
 - IMPORTANT: Do not translate metrics or client names between Georgian and English - use the exact strings from metrics_list or client_list
 - CRITICAL: When filtering by client, look for the best match from unique_clients using fuzzy matching techniques
