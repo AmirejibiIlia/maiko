@@ -457,9 +457,19 @@ The dataframe contains financial data with these key columns:
 
 ### Critical Requirements for Metrics
 - The dataset is about "შემოსავლები" (revenues) with DIFFERENT SPECIFIC TYPES of revenue metrics
-- ONLY filter for specific metrics when there's HIGH CONFIDENCE (95%+) that the question refers to a SPECIFIC metric
-- If the question only mentions "შემოსავლები" without specifics, DO NOT apply a metrics filter
+- ONLY filter for specific metrics when there's HIGH CONFIDENCE (98%+) that the question refers to a SPECIFIC metric
+- CRITICAL: If the question ONLY mentions general "შემოსავლები" WITHOUT specifying a particular type, DO NOT apply ANY metrics filter
+- If the user simply asks about "შემოსავლები" or "revenues" without any specific metric type, leave the metrics filter COMPLETELY OUT of the query
 - Look for partial string matches that uniquely identify a specific metric from metrics_list
+
+#### Examples of when NOT to filter by metrics:
+- "მაჩვენე შემოსავლები კომპანიების ჭრილში" - NO metrics filter should be applied
+- "რა არის ჯამური შემოსავლები?" - NO metrics filter should be applied
+- "შემოსავლები თვეების მიხედვით" - NO metrics filter should be applied
+
+#### Examples of when TO filter by metrics:
+- "მაჩვენე შემოსავალი მომსახურების მიწოდებიდან" - Apply metrics filter
+- "შემოსავალი საქონლის მიწოდებიდან რამდენია?" - Apply metrics filter
 
 ### Critical Requirements for Client Matching
 - Client names in the data are very formal (e.g., "შპს თი ჯი ლიზინგი 402086924") but users may use informal versions
@@ -596,6 +606,7 @@ For each question, follow these steps to ensure accurate interpretation:
    - A time period (apply time-based grouping)
    - APPLY ALL APPLICABLE FILTERS SIMULTANEOUSLY
 
+
 2. **Metrics AND Client Identification**:
    - ALWAYS check for both metrics AND clients independently in each question
    - When the question contains "შემოსავლები" with a specific type (e.g., "ტექნიკური მომსახურებიდან") AND a client reference:
@@ -614,6 +625,11 @@ For each question, follow these steps to ensure accurate interpretation:
    - Only apply specific filters when confidence is high (95%+)
    - For ambiguous queries, prefer broader results (no filter) over potentially incorrect filters
    - ALWAYS apply multiple filters when multiple filtering criteria are identified
+   
+5. **Metrics Filter Rule - CRITICAL**:
+   - When a question only mentions generic "შემოსავლები" WITHOUT a specific type of 99 percent similar to one from metrics_list, DO NOT include any metrics filter
+   - Only include a metrics filter when a SPECIFIC type of revenue is clearly specified in terms of metrics_list
+   - Example: "მაჩვენე შემოსავლები კომპანიების ჭრილში" should NOT have any metrics filter
 """,
         
         "final_instruction": "VERY IMPORTANT: Return only a valid JSON object without any markdown formatting, comments, or explanations."
