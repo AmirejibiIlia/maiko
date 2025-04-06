@@ -10,8 +10,8 @@ import datetime
 import base64
 import uuid
 from streamlit.components.v1 import html
-from functions import query_data, apply_where, group_and_aggregate, apply_order_by, execute_query, extract_json_from_text, interpret_results, load_excel_from_s3, store_question_in_session, log_to_s3, submit_rating, set_background_from_s3,initialize_session_state,setup_rating_callbacks,process_rating,load_data_from_s3,display_data_overview,prepare_data_context,create_claude_prompt,query_claude,display_rating_buttons,process_and_display_results
-
+from functions import query_data, apply_where, group_and_aggregate, apply_order_by, execute_query, extract_json_from_text, interpret_results, load_excel_from_s3, store_question_in_session, log_to_s3, submit_rating, set_background_from_s3,initialize_session_state,setup_rating_callbacks,process_rating,load_data_from_s3,display_data_overview,prepare_data_context,query_claude,display_rating_buttons,process_and_display_results
+from prompt import create_claude_prompt
 
 def simple_finance_chat():
     """Main function for the finance chat application"""
