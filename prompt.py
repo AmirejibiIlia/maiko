@@ -455,6 +455,12 @@ The dataframe contains financial data with these key columns:
 - ALWAYS ANALYZE THE QUESTION FOR BOTH METRICS AND CLIENT REFERENCES INDEPENDENTLY
 - When the question mentions both a specific revenue type AND a specific client, BOTH filters must be applied
 
+### Examples:
+- Question about "შემოსავალი თი ჯი ლისინგისგან" should be analyzed carefully:
+  - If "შემოსავალი" with a specific type appears, filter by that metric
+  - Since "თი ჯი ლისინგი" is a client reference, also filter by client "შპს თი ჯი ლიზინგი 402086924"
+  - YOU MUST CHECK FOR BOTH POSSIBILITIES AND APPLY BOTH FILTERS WHEN APPROPRIATE
+
 ### Critical Requirements for Metrics
 - The dataset is about "შემოსავლები" (revenues) with DIFFERENT SPECIFIC TYPES of revenue metrics
 - ONLY filter for specific metrics when there's HIGH CONFIDENCE (98%+) that the question refers to a SPECIFIC metric
@@ -471,7 +477,10 @@ The dataframe contains financial data with these key columns:
 - "მაჩვენე შემოსავალი მომსახურების მიწოდებიდან" - Apply metrics filter
 - "შემოსავალი საქონლის მიწოდებიდან რამდენია?" - Apply metrics filter
 
-### Critical Requirements for Client Matching
+### Critical Requirements for Clients
+- ONLY filter for specific clients when there's HIGH CONFIDENCE (95%+) that the question refers to a SPECIFIC client
+- CRITICAL: If the question mentions "კომპანიების ჭრილში" or "companies" generally WITHOUT specifying a particular company, DO NOT apply ANY client filter
+- Apply client filter ONLY when a specific company name or clear reference is made
 - Client names in the data are very formal (e.g., "შპს თი ჯი ლიზინგი 402086924") but users may use informal versions
 - Apply fuzzy matching for client names with these steps:
   1. Look for key identifying parts of company names (e.g., "თი ჯი ლიზინგი" for "შპს თი ჯი ლიზინგი 402086924")
@@ -479,13 +488,14 @@ The dataframe contains financial data with these key columns:
   3. Handle slight spelling variations (e.g., "ლისინგი" vs "ლიზინგი")
   4. If multiple matches are possible, choose the client with highest string similarity
 
-### Examples:
-- Question about "თიჯი ლიზინგი" should match client "შპს თი ჯი ლიზინგი 402086924"
-- Question mentioning just "შემოსავლები" without specifics should NOT apply a metrics filter
-- Question about "შემოსავალი თი ჯი ლისინგისგან" should be analyzed carefully:
-  - If "შემოსავალი" with a specific type appears, filter by that metric
-  - Since "თი ჯი ლისინგი" is a client reference, also filter by client "შპს თი ჯი ლიზინგი 402086924"
-  - YOU MUST CHECK FOR BOTH POSSIBILITIES AND APPLY BOTH FILTERS WHEN APPROPRIATE
+### Examples of when NOT to filter by client:
+- "მაჩვენე შემოსავლები კომპანიების ჭრილში" - NO client filter should be applied
+- "ჯამური შემოსავლები კომპანიების მიხედვით" - NO client filter should be applied
+- "შემოსავლები ყველა კომპანიისთვის" - NO client filter should be applied
+
+### Examples of when TO filter by client:
+- "მაჩვენე შემოსავლები თი ჯი ლიზინგისთვის" - Apply client filter
+- "რა არის ჯამური შემოსავალი თი ჯი ლიზინგის შემთხვევაში?" - Apply client filter
 """,
         
         "json_structure": f"""
