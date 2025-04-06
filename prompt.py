@@ -153,6 +153,40 @@ from streamlit.components.v1 import html
 #     return prompt
 
 
+import json
+from typing import Dict, List, Optional, Union, Literal, Any
+from pydantic import BaseModel, Field
+
+class WhereCondition(BaseModel):
+    """Represents a single condition in a WHERE clause"""
+    operator: str = Field(..., description="Operator like '=', '>', '<', '>=', '<=', '!='")
+    value: str = Field(..., description="Value to compare against")
+
+class OrderByItem(BaseModel):
+    """Represents a single order by specification"""
+    column: str = Field(..., description="Column name to order by, often with suffix like 'value_sum'")
+    ascending: bool = Field(..., description="True for ascending order, False for descending")
+
+class QueryModel(BaseModel):
+    """Model representing the expected JSON structure for financial queries"""
+    data: Literal["df"] = Field("df", description="Always set to 'df' (the dataframe variable name)")
+    where: Dict[str, Dict[str, str]] = Field(
+        default_factory=dict,
+        description="Filtering dictionary specifying conditions"
+    )
+    group_by: Optional[List[str]] = Field(
+        None, 
+        description="List of columns to group by"
+    )
+    aggregations: Optional[Dict[str, List[str]]] = Field(
+        None,
+        description="Dictionary defining aggregation operations"
+    )
+    order_by: Optional[List[List[Union[str, bool]]]] = Field(
+        None,
+        description="List of arrays for sorting results"
+    )
+
 def create_claude_prompt(question, data_context):
     """
     Create a well-structured prompt for Claude to convert financial questions in Georgian to JSON query objects.
@@ -164,6 +198,10 @@ def create_claude_prompt(question, data_context):
     Returns:
         str: Formatted prompt for Claude
     """
+    # Generate Pydantic schema as JSON schema for reference
+    query_model_schema = QueryModel.model_json_schema()
+    schema_str = json.dumps(query_model_schema, indent=2)
+    
     # Base template for the prompt with sections
     prompt_sections = {
         "introduction": "You are a helpful assistant knowing both finance and sql well:",
@@ -214,20 +252,24 @@ The dataframe contains financial data with these key columns:
         2. Include appropriate "order_by" clauses (descending for "მეტი"/highest, ascending for "დაბალი"/lowest)
         3. Limit results if appropriate
 """,
-        
-        "json_structure": """
+
+        "json_structure": f"""
 ## Required JSON Structure
-Your response must follow this exact format (structure only, not these example values):
+Your response must follow the Pydantic schema below:
+
+{schema_str}
+
+Example valid structure (not these example values):
 ```json
-{
+{{
     "data": "df",
-    "where": {
-                "column_name" : { } 
-                }, // Empty unless filters are explicitly mentioned
+    "where": {{
+                "column_name" : {{"=": "value"}} 
+              }},
     "group_by": ["column_name"],
-    "aggregations": {"column_name": ["aggregation_function"]},
-    "order_by": [["column_name_with_suffix", boolean]]
-}
+    "aggregations": {{"column_name": ["aggregation_function"]}},
+    "order_by": [["column_name_with_suffix", false]]
+}}
 ```
 """,
         
