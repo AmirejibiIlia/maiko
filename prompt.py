@@ -451,6 +451,8 @@ The dataframe contains financial data with these key columns:
         "improved_matching_guidelines": """
 ## Enhanced Matching Guidelines for Metrics and Clients
 
+# If more than one specifi metrics or more than one specific clients applies, not filter at all.
+
 ### Critical Requirements for Metrics and Clients
 - ALWAYS ANALYZE THE QUESTION FOR BOTH METRICS AND CLIENT REFERENCES INDEPENDENTLY
 - When the question mentions both a specific revenue type AND a specific client, BOTH filters must be applied
