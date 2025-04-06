@@ -190,6 +190,7 @@ class QueryModel(BaseModel):
 def create_claude_prompt(question, data_context):
     """
     Create a well-structured prompt for Claude to convert financial questions in Georgian to JSON query objects.
+    Includes enhanced fuzzy matching for metrics and clients.
     
     Args:
         question (str): The financial question in Georgian
@@ -228,31 +229,32 @@ The dataframe contains financial data with these key columns:
 - `value`: Numerical amount of income
 """,
         
-        "georgian_language_handling": """
-## Georgian Language Handling Instructions     
+        "improved_matching_guidelines": """
+## Enhanced Matching Guidelines for Metrics and Clients
 
-### Critical Requirements
-- The user query is in Georgian and all metrics and client names in data_context are in Georgian
-- NEVER translate metric names or client names from Georgian to English during processing
+### Critical Requirements for Metrics
+- The dataset is about "შემოსავლები" (revenues) with DIFFERENT SPECIFIC TYPES of revenue metrics
+- ONLY filter for specific metrics when there's HIGH CONFIDENCE (95%+) that the question refers to a SPECIFIC metric
+- If the question only mentions "შემოსავლები" without specifics, DO NOT apply a metrics filter
+- Look for partial string matches that uniquely identify a specific metric from metrics_list
 
-    ### Metric and Client Detection Guidelines
-    - Use exact string matching between Georgian terms in queries and metrics_list/client_list entries
-    - Match metrics/clients by searching for complete or partial string matches in the query
-    - Always prioritize exact metric/client names from their respective lists in their original form
-    - Note: The dataset concerns many types of "შემოსავლები" (revenue) - so a question mentioning "შემოსავლები" without specifying the type of "შემოსავლები" from metrics_list, is not enough enough to filter. 
-    - The Question should be referring (complete or partial) to specific value from metrics_list to filter.
-    - Similarly, if a client name is mentioned, it should be matched against the client_list.
+### Critical Requirements for Client Matching
+- Client names in the data are very formal (e.g., "შპს თი ჯი ლიზინგი 402086924") but users may use informal versions
+- Apply fuzzy matching for client names with these steps:
+  1. Look for key identifying parts of company names (e.g., "თი ჯი ლიზინგი" for "შპს თი ჯი ლიზინგი 402086924")
+  2. Ignore prefixes like "შპს", "სს", etc. and ID numbers when matching
+  3. Handle slight spelling variations (e.g., "ლისინგი" vs "ლიზინგი")
+  4. If multiple matches are possible, choose the client with highest string similarity
 
-    ### Query Processing Requirements
-    - When a specific metric or client is mentioned in the query, ALWAYS include a "where" clause filtering for that specific metric/client
-    - Implement fuzzy matching as a fallback method to identify the closest metric/client match in metrics_list/client_list when exact matching fails but the intent to query a specific metric/client is clear
-    - Time-based questions (containing words like "როდის") still require metric/client filtering when specific metrics/clients are mentioned
-    - Questions asking for superlatives (like "ყველაზე მეტი" or "ყველაზე დაბალი") should:
-        1. Filter for the specified metric/client
-        2. Include appropriate "order_by" clauses (descending for "მეტი"/highest, ascending for "დაბალი"/lowest)
-        3. Limit results if appropriate
+### Examples:
+- Question about "თიჯი ლიზინგი" should match client "შპს თი ჯი ლიზინგი 402086924"
+- Question mentioning just "შემოსავლები" without specifics should NOT apply a metrics filter
+- Question about "შემოსავალი თი ჯი ლისინგისგან" should be analyzed carefully:
+  - If "შემოსავალი თი ჯი ლისინგისგან" is a specific metric in metrics_list, filter by that metric
+  - If "თი ჯი ლისინგი" appears to be a client reference, filter by client "შპს თი ჯი ლიზინგი 402086924"
+  - Check both possibilities and determine which is more likely based on data context
 """,
-
+        
         "json_structure": f"""
 ## Required JSON Structure
 Your response must follow the Pydantic schema below:
@@ -283,12 +285,11 @@ Example valid structure (not these example values):
 - Values are nested dictionaries with operator-value pairs
 - Operators include: "=", ">", "<", ">=", "<=", "!="
 - Example: `{"metrics": {"=": "income from production"}}` filters for rows where metrics equals "income from production"
-- Example: `{"client": {"=": "შპს მაიჯიპიეს 205216176"}}` filters for rows where client equals "შპს მაიჯიპიეს 205216176"
+- Example: `{"client": {"=": "შპს თი ჯი ლიზინგი 402086924"}}` filters for rows where client equals "შპს თი ჯი ლიზინგი 402086924"
 - Multiple conditions can be specified as separate key-value pairs
-- The "where" should NEVER be empty when the question clearly specifies filtering criteria.
-- Especially, ALWAYS include a "where" if question refers to filtering metrics or clients, match to those provided in "metrics_list" or "client_list" - If multiple matches, include as many as relevants.
+- The "where" clause should ONLY be included when there's high confidence that specific filtering is intended
 - IMPORTANT: Do not translate metrics or client names between Georgian and English - use the exact strings from metrics_list or client_list
-- CRITICAL: When filtering client look for most exact match from unique_clients, top 1.
+- CRITICAL: When filtering by client, look for the best match from unique_clients using fuzzy matching techniques
 
 3. **"group_by"**: List of columns to group by - Optional
 - Only group in case question asks grouping, based on data structure.
@@ -332,7 +333,10 @@ Example valid structure (not these example values):
         "implementation_rules": """
 ## Implementation Rules
 - Include any of above Optional components if and only if asked.
-- Always include `"where"` when question mentions or refers to the specific metrics or client names based on data overview or time periods
+- For "where" clause filters:
+  - Only filter for metrics when highly confident (95%+) that a specific metric is being requested
+  - For client filtering, use intelligent fuzzy matching to identify the most likely client
+  - Be cautious about ambiguous terms (like "თი ჯი ლისინგისგან") that could refer to either metrics or clients
 - Use appropriate `"group_by"` based on the question's focus (by date, by metric type, by client, etc.)
 - For time period groupings:
   - When user asks for quarterly data, use `"quarter"` in group_by
@@ -342,9 +346,37 @@ Example valid structure (not these example values):
 - For aggregations, use `"value"` as the key and include appropriate functions (typically `["sum"]`)
 - Include `"order_by"` !only! when question mentions sorting or ranking (e.g., "highest", "lowest")
 - Dates should be formatted as "YYYY-MM-DD"
-- When the question is vague or doesn't specify filters, use the context from Data Overview to provide sensible defaults
-- Match metrics and client names exactly as they appear in the metrics_list and client_list from the data context
-- CRITICAL: When filtering client look for most exact match from unique_clients, top 1.
+- When the question is vague or doesn't specify filters, do not apply filters without high confidence
+- CRITICAL: When filtering client look for most similar match from unique_clients accounting for informal naming
+""",
+        
+        "problem_solving_approach": """
+## Problem Solving Approach
+
+For each question, follow these steps to ensure accurate interpretation:
+
+1. **Context Analysis**: Determine if the question is about:
+   - General revenue information (avoid specific metrics filters)
+   - A specific metric (apply metrics filter with high confidence)
+   - A specific client (apply client filter using fuzzy matching)
+   - A time period (apply time-based grouping)
+
+2. **Metrics vs Client Disambiguation**:
+   - When terms could refer to either metrics or clients (like "შემოსავალი თი ჯი ლისინგისგან"):
+     - Check if it exactly matches a metrics entry
+     - Check if parts of it match a client name
+     - Determine which is more likely based on context and structure
+     - If uncertain, prioritize client matching
+
+3. **Client Name Identification**:
+   - Extract key identifying parts of potential client names
+   - Match against unique_clients while ignoring prefixes and IDs
+   - Use similarity scoring to find the best match
+   - Return exact full client name from data for filtering
+
+4. **Confidence Check**:
+   - Only apply filters when confidence is high (95%+)
+   - For ambiguous queries, prefer broader results (no filter) over potentially incorrect filters
 """,
         
         "final_instruction": "VERY IMPORTANT: Return only a valid JSON object without any markdown formatting, comments, or explanations."
@@ -357,10 +389,11 @@ Example valid structure (not these example values):
         prompt_sections["question_simplification"],
         prompt_sections["data_overview"],
         prompt_sections["data_structure"],
-        prompt_sections["georgian_language_handling"],
+        prompt_sections["improved_matching_guidelines"],
         prompt_sections["json_structure"],
         prompt_sections["technical_specifications"],
         prompt_sections["implementation_rules"],
+        prompt_sections["problem_solving_approach"],
         prompt_sections["final_instruction"]
     ])
     
