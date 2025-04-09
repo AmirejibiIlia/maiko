@@ -185,6 +185,7 @@ def interpret_results(df, question):
     
     return response.content[0].text.strip()
 
+
 def load_excel_from_s3():
     """
     Load the FullData.xlsx file from S3 bucket
