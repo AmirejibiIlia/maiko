@@ -74,6 +74,8 @@ def simple_finance_chat():
             
             # Display rating buttons
             display_rating_buttons(rating_callbacks)
+            
+            #aqana var me!
 
 if __name__ == "__main__":
     simple_finance_chat()
