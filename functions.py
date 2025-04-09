@@ -10,7 +10,6 @@ import datetime
 import base64
 import uuid
 from streamlit.components.v1 import html
-from prompt import create_claude_prompt
 
 
 def interpret_results(df, question):
