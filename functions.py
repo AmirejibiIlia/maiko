@@ -32,7 +32,9 @@ def interpret_results(df, question):
     Keep your answer brief and to the point, focusing only on what was asked in the original question!
 
     If the question asks for trends or comparisons, express the percent changes when relevant.
-
+    
+    Critical: Give structured output! as bullets or whatever will be appropriate.
+    
     Rules for answering:
         1. Perform all calculations with precision – use exact arithmetic operations instead of estimations.  
         2. If the question involves addition, subtraction, multiplication, or division, compute the exact result.   
