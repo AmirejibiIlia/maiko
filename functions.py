@@ -415,33 +415,6 @@ def prepare_data_context(df, overview_data):
     return data_context
 
 
-def query_claude(prompt):
-    """Query Claude API and process the response"""
-    try:
-        client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
-        
-        response = client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=1000,
-            temperature=0,
-            messages=[{"role": "user", "content": prompt}]
-        )
-                        
-        response_text = response.content[0].text.strip()
-        
-        # Directly parse the JSON
-        try:
-            query_json = json.loads(response_text)
-        except json.JSONDecodeError:
-            # If direct parsing fails, try a basic cleanup
-            # This removes any markdown code block indicators
-            cleaned_text = response_text.replace("```json", "").replace("```", "").strip()
-            query_json = json.loads(cleaned_text)
-            
-        return response_text, query_json
-    except Exception as e:
-        st.error(f"Error querying Claude: {str(e)}")
-        return None, None
 
 def display_rating_buttons(callbacks):
     """Display rating buttons or the current rating"""
@@ -458,28 +431,3 @@ def display_rating_buttons(callbacks):
         rating_value = st.session_state.get('rating', '0')
         st.success(f"You rated this answer: {rating_value}/5. Thank you for your feedback!")
 
-def process_and_display_results(df, query_json, question):
-    """Process the query and display results"""
-    # Fix order_by format if needed
-    if "order_by" in query_json and query_json["order_by"]:
-        query_json["order_by"] = [[item[0], item[1]] if isinstance(item, tuple) else item for item in query_json["order_by"]]
-    
-    st.write("### Generated JSON Query:")
-    st.json(query_json)
-    
-    # Execute query
-    result_df = execute_query(query_json)
-    
-    st.write("### Query Result:")
-    st.dataframe(result_df)
-    
-    # Interpret results
-    interpretation_section = st.container()
-    with interpretation_section:
-        interpretation = interpret_results(result_df, question)
-        
-        st.write("### Interpretation:")                
-        st.markdown(f"<div style='background-color: transparent; padding: 20px; border-radius: 5px; font-size: 16px;'>{interpretation}</div>", unsafe_allow_html=True)
-
-        # Log the question and empty rating
-        log_to_s3()
