@@ -11,8 +11,7 @@ import base64
 import uuid
 import sqlite3
 from streamlit.components.v1 import html
-from sql_functions import get_dataframe_schema, format_schema_for_prompt, generate_sql_query, execute_sql_on_dataframe, answer_question_with_sql
-from functions import interpret_results, store_question_in_session, log_to_s3, set_background_from_s3, initialize_session_state, setup_rating_callbacks, process_rating, load_data_from_s3, display_data_overview, display_rating_buttons
+from functions import interpret_results, store_question_in_session, log_to_s3, set_background_from_s3, initialize_session_state, setup_rating_callbacks, process_rating, load_data_from_s3, display_data_overview, display_rating_buttons, get_dataframe_schema, format_schema_for_prompt, generate_sql_query, execute_sql_on_dataframe, answer_question_with_sql
 
 def simple_finance_chat():
     """Main function for the finance chat application"""
