@@ -25,7 +25,7 @@ def simple_finance_chat():
     process_rating()
     
     # App title and introduction
-    st.title("სალამი, მე ვარ MAIA - Demo")
+    st.title("ვისაუბროთ ჭეშმარიტ ანალიტიკაზე? მე ვარ MAIA")
     st.write("დამისვი ბევრი კითხვები, რომ ბევრი ვისწავლო!")
     
     # Load data
