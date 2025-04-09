@@ -880,6 +880,80 @@ def format_schema_for_prompt(schema_info, potential_client_columns, potential_me
     
     return schema_text
 
+# def generate_sql_query(question, schema_text, unique_clients=None, unique_metrics=None):
+#     """Generate SQL query using Anthropic's Claude with improved handling for clients and metrics"""
+#     client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
+    
+#     system_prompt = """You are an expert SQL query generator. You convert natural language questions into SQL queries.
+#     Please only return the SQL query with no additional explanation, comments, or markdown formatting.
+    
+#     Important guidelines:
+#     1. For SQLite date handling:
+#        - Do NOT use EXTRACT() function
+#        - Instead, use strftime('%m', date_column) to extract month
+#        - Use strftime('%Y', date_column) to extract year
+#        - Use strftime('%d', date_column) to extract day
+#        - For counting distinct months, use: COUNT(DISTINCT strftime('%m', date_column))
+    
+#     2. For client-related questions:
+#        - When asked about clients, use the EXACT client string provided in the AVAILABLE CLIENTS list
+#        - For Georgian text, match client names by looking for fuzzy matches, partial matches, or substring matches
+#        - When multiple potential matches exist, choose the most closely matching client
+#        - Use the exact client string provided in the list for filtering - do not make up client names!
+#        - For distinct client counts, use COUNT(DISTINCT client_column)
+#        - Group by client columns when aggregating client-specific metrics
+    
+#     3. For metric-related questions:
+#        - When asked about metrics, use the EXACT metric string provided in the AVAILABLE METRICS list
+#        - Match Georgian metric terms to the closest matching metric in the AVAILABLE METRICS list
+#        - For fuzzy matches, prefer the most semantically similar metric from the list
+#        - Use appropriate aggregation functions (SUM, AVG, MIN, MAX) based on the question
+#        - For distinct metric values, use COUNT(DISTINCT metric_column)
+#        - Use HAVING clauses when filtering on aggregated values
+       
+#     4. For questions in Georgian language:
+#        - Follow the exact client and metric names in their respective AVAILABLE lists
+#        - Do proper matching between Georgian terms in the question and available client/metric names
+#        - Be careful with company names and metric terms - use fuzzy matching for Georgian terms
+#        - Always use the exact strings from the provided lists in your SQL query
+#     """
+    
+#     user_prompt = f"""I have a pandas DataFrame with the following schema:
+
+# {schema_text}
+
+# The dataframe will be converted to a SQL table named 'data'.
+
+# Question (in Georgian): {question}
+
+# Generate only the SQL query to answer this question. Return only the query itself without any explanation or comments.
+# Pay special attention to matching client names and metrics correctly - look for the most similar company name and metric from the provided AVAILABLE CLIENTS and AVAILABLE METRICS lists.
+# Your job is to find the closest matching client and metric from their respective lists when mentioned.
+
+# For example:
+# - If the question asks about "პსპ ფარმა", you should match it to the most similar client in the AVAILABLE CLIENTS list
+# - If the question asks about "შემოსავლები" or "revenue", match it to the appropriate metric in the AVAILABLE METRICS list
+# - Use LIKE or exact matches based on the available strings
+# - If a term isn't exactly in the list, consider if it's a partial/abbreviated match or semantically similar
+# """
+
+#     try:
+#         response = client.messages.create(
+#             model="claude-3-sonnet-20240229",
+#             system=system_prompt,
+#             max_tokens=1000,
+#             temperature=0,  # Use 0 for deterministic responses
+#             messages=[
+#                 {"role": "user", "content": user_prompt}
+#             ]
+#         )
+        
+#         sql_query = response.content[0].text.strip()
+#         return sql_query
+    
+#     except Exception as e:
+#         return f"Error generating SQL query: {str(e)}"
+
 def generate_sql_query(question, schema_text, unique_clients=None, unique_metrics=None):
     """Generate SQL query using Anthropic's Claude with improved handling for clients and metrics"""
     client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
@@ -904,7 +978,9 @@ def generate_sql_query(question, schema_text, unique_clients=None, unique_metric
        - Group by client columns when aggregating client-specific metrics
     
     3. For metric-related questions:
-       - When asked about metrics, use the EXACT metric string provided in the AVAILABLE METRICS list
+       - IMPORTANT: The entire dataset is about "შემოსავლები" (revenues). When a question only mentions "შემოსავლები" without specifying a particular type, DO NOT filter on the metrics column at all.
+       - Only filter on specific metrics when the question asks about a specific type of revenue or metric
+       - When filtering for specific metrics, use the EXACT metric string provided in the AVAILABLE METRICS list
        - Match Georgian metric terms to the closest matching metric in the AVAILABLE METRICS list
        - For fuzzy matches, prefer the most semantically similar metric from the list
        - Use appropriate aggregation functions (SUM, AVG, MIN, MAX) based on the question
@@ -924,15 +1000,17 @@ def generate_sql_query(question, schema_text, unique_clients=None, unique_metric
 
 The dataframe will be converted to a SQL table named 'data'.
 
+IMPORTANT: The entire dataset is about "შემოსავლები" (revenues). When a question only mentions "შემოსავლები" without specifying a particular type, DO NOT filter on the metrics column at all.
+
 Question (in Georgian): {question}
 
 Generate only the SQL query to answer this question. Return only the query itself without any explanation or comments.
-Pay special attention to matching client names and metrics correctly - look for the most similar company name and metric from the provided AVAILABLE CLIENTS and AVAILABLE METRICS lists.
-Your job is to find the closest matching client and metric from their respective lists when mentioned.
+Pay special attention to matching client names correctly - look for the most similar company name from the provided AVAILABLE CLIENTS list.
 
 For example:
 - If the question asks about "პსპ ფარმა", you should match it to the most similar client in the AVAILABLE CLIENTS list
-- If the question asks about "შემოსავლები" or "revenue", match it to the appropriate metric in the AVAILABLE METRICS list
+- If the question just mentions "შემოსავლები" without specifying a type, do not filter the metrics column at all
+- If the question asks about a specific type of revenue or metric, match it to the appropriate metric in the AVAILABLE METRICS list
 - Use LIKE or exact matches based on the available strings
 - If a term isn't exactly in the list, consider if it's a partial/abbreviated match or semantically similar
 """
