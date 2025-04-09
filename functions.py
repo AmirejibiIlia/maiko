@@ -13,48 +13,103 @@ from streamlit.components.v1 import html
 import sqlite3
 
 
+# def interpret_results(df, question):
+#     """
+#     Send the query results back to Claude for interpretation.
+#     """
+#     client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
+    
+#     # Convert the dataframe to a JSON string for Claude
+#     df_json = df.to_json(orient='records', date_format='iso')
+    
+#     interpretation_prompt = f"""
+#     Original question: {question}
+    
+#     Query results:
+#     {df_json}
+        
+#     Please answer in a clear, concise way to the original question. Answer in Georgian.
+#     Keep your answer brief and to the point, focusing only on what was asked in the original question!
+
+#     If the question asks for trends or comparisons, express the percent changes when relevant.
+    
+#     Critical: Give structured output! as bullets or whatever will be appropriate. Write each bullets on new line. 
+    
+#     Rules for answering:
+#         1. Perform all calculations with precision – use exact arithmetic operations instead of estimations.  
+#         2. If the question involves addition, subtraction, multiplication, or division, compute the exact result.   
+#         3. Do not provide additional information, for example trends, comparisons, or additional analysis unless specifically requested.
+#         4. If asked about a specific metric in a specific year, provide just that number
+#         5. If asked about trends, compare numbers and calculate percentage changes
+#         6. If asked about highest/lowest values, specify both the date and the value
+#         7. Format numbers with thousand separators for better readability
+#         8. Give structured output!
+#     """
+    
+#     response = client.messages.create(
+#         model="claude-3-sonnet-20240229",
+#         max_tokens=1000,
+#         temperature=0,
+#         messages=[{"role": "user", "content": interpretation_prompt}]
+#     )
+    
+#     return response.content[0].text.strip()
+
 def interpret_results(df, question):
     """
-    Send the query results back to Claude for interpretation.
+    Send the query results back to Claude for interpretation with improved structure and formatting.
     """
     client = anthropic.Client(api_key=st.secrets["ANTHROPIC_API_KEY"])
     
     # Convert the dataframe to a JSON string for Claude
     df_json = df.to_json(orient='records', date_format='iso')
     
+    system_prompt = """You are a financial data analyst specializing in translating data into clear, structured insights.
+    When interpreting query results:
+    
+    1. Always structure your answers with bullet points or numbered lists when appropriate
+    2. Each point should be on a new line with proper formatting
+    3. Format numbers with thousand separators (e.g., 1,000,000 instead of 1000000)
+    4. Calculate percentage changes precisely when trends are requested
+    5. Keep responses focused only on what was asked - do not provide additional analysis
+    6. Answers must be in Georgian language
+    7. Use Unicode bullet points (•) for better readability
+    8. For multiple data points, always use structured lists
+    """
+    
     interpretation_prompt = f"""
     Original question: {question}
     
     Query results:
     {df_json}
-        
-    Please answer in a clear, concise way to the original question. Answer in Georgian.
-    Keep your answer brief and to the point, focusing only on what was asked in the original question!
-
-    If the question asks for trends or comparisons, express the percent changes when relevant.
     
-    Critical: Give structured output! as bullets or whatever will be appropriate. Write each bullets on new line and have small linespace between.
+    INSTRUCTIONS:
+    - Answer ONLY in Georgian language
+    - Your response MUST be structured with bullet points or numbered lists
+    - Each point must be on a new line
+    - Format all numbers with thousand separators for readability (e.g., 1,234,567)
+    - If the question asks about trends or comparisons, calculate and show precise percentage changes
+    - Focus ONLY on directly answering what was asked - no additional information
+    - For calculations, use exact arithmetic - no estimations or rounding
     
-    Rules for answering:
-        1. Perform all calculations with precision – use exact arithmetic operations instead of estimations.  
-        2. If the question involves addition, subtraction, multiplication, or division, compute the exact result.   
-        3. Do not provide additional information, for example trends, comparisons, or additional analysis unless specifically requested.
-        4. If asked about a specific metric in a specific year, provide just that number
-        5. If asked about trends, compare numbers and calculate percentage changes
-        6. If asked about highest/lowest values, specify both the date and the value
-        7. Format numbers with thousand separators for better readability
-        8. Give structured output!
+    FORMATTING REQUIREMENTS:
+    - Use bullet points (•) for lists of information
+    - Use numbered lists (1., 2., etc.) for sequential or ranked information
+    - Present highest/lowest values with both the date and value clearly indicated
+    - If the answer is a single number, present it clearly with proper formatting
+    
+    DO NOT provide any explanation of your approach or additional context - just the structured answer.
     """
     
     response = client.messages.create(
         model="claude-3-sonnet-20240229",
         max_tokens=1000,
         temperature=0,
+        system=system_prompt,
         messages=[{"role": "user", "content": interpretation_prompt}]
     )
     
     return response.content[0].text.strip()
-
 
 def load_excel_from_s3():
     """
